@@ -1,13 +1,14 @@
 import asyncio
 import csv
+import os
 import time
-from datetime import datetime, timedelta
 import tkinter as tk
-from tkinter import messagebox
+from datetime import datetime, timedelta
+from tkinter import messagebox, filedialog
+
 from pyppeteer import launch
 from pyppeteer.errors import PageError
 from tkcalendar import DateEntry  # Import DateEntry widget from tkcalendar
-import os
 
 
 async def validate_dates(start_date, end_date):
@@ -22,10 +23,26 @@ async def validate_dates(start_date, end_date):
         raise ValueError("End date should be later than or equal to start date.")
 
 
-async def print_output_text(output, message):
-    output.insert(tk.END, message)
-    output.update_idletasks()  # Update the widget immediately
+async def print_output_text(message):
+    # output.insert(tk.END, message)
+    # output.update_idletasks()  # Update the widget immediately
     print(message)
+
+
+async def save_data_to_file(combined_headers, combined_data, save_folder):
+    try:
+        os.makedirs(save_folder, exist_ok=True)
+        file_name = f'{save_folder}/combined_table_data.csv'
+        if combined_data:
+            with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow(combined_headers)  # Write headers as the first row
+                csvwriter.writerows(combined_data)  # Write data rows
+            return file_name
+
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Error saving data: {str(e)}")
 
 
 async def scrape_and_save_table_data(start_date, end_date, output_text):
@@ -38,11 +55,11 @@ async def scrape_and_save_table_data(start_date, end_date, output_text):
     page = await browser.newPage()
 
     try:
-        await print_output_text(output_text, "Launching browser...\n")
+        await print_output_text("Launching browser...\n")
         page_url = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"
         await page.goto(page_url, waitUntil='domcontentloaded')
-        await print_output_text(output_text, f"Opening page from URL: {page_url}\n")
-    #
+        await print_output_text(f"Opening page from URL: {page_url}\n")
+        #
         combined_data = []
         combined_headers = []
 
@@ -51,7 +68,7 @@ async def scrape_and_save_table_data(start_date, end_date, output_text):
 
         while current_date <= end_date:
             formatted_date = current_date.strftime('%B_%d_%Y')
-            await print_output_text(output_text, f"Scraping data for {formatted_date}... \n")
+            await print_output_text(f"Scraping data for {formatted_date}... \n")
             await page.waitForSelector('#daily-report-datepicker')
             await page.click('#daily-report-datepicker')
 
@@ -61,7 +78,7 @@ async def scrape_and_save_table_data(start_date, end_date, output_text):
 
             await page.evaluate(f'window.scrollBy(0, {scroll_distance})')
             await page.type('#daily-report-datepicker', current_date.strftime('%B %d, %Y'))
-            await print_output_text(output_text, f"Typed '{formatted_date}' into the input box \n")
+            await print_output_text(f"Typed '{formatted_date}' into the input box \n")
             await page.waitForSelector('#daily-report-submit')
             await page.click('#daily-report-submit')
             await asyncio.sleep(5)
@@ -77,7 +94,7 @@ async def scrape_and_save_table_data(start_date, end_date, output_text):
                 await asyncio.sleep(5)
 
             except Exception as e:
-                await print_output_text(output_text, f"No data found for {formatted_date}. \n")
+                await print_output_text(f"No data found for {formatted_date}. \n")
 
                 current_date += timedelta(days=1)
                 continue
@@ -108,48 +125,41 @@ async def scrape_and_save_table_data(start_date, end_date, output_text):
 
                     next_button = await page.querySelector('#license_report_next')
                     if not next_button:
-                        await print_output_text(output_text, f"No more data available for {formatted_date}. \n")
+                        await print_output_text(f"No more data available for {formatted_date}. \n")
                         break  # Exit loop if "Next" button not found
 
                     is_disabled = await page.evaluate('(nextButton) => nextButton.classList.contains("disabled")',
                                                       next_button)
                     if is_disabled:
-                        await print_output_text(output_text, f"No more data available for {formatted_date}. \n")
+                        await print_output_text(f"No more data available for {formatted_date}. \n")
                         break  # Exit loop if "Next" button is disabled
 
                     await next_button.click()
-                    await print_output_text(output_text, f"Clicked on Next button for next page \n")
+                    await print_output_text(f"Clicked on Next button for next page \n")
                     await page.waitForSelector('#license_report tbody tr', timeout=30000)
                     await asyncio.sleep(5)  # Adjust as needed
 
-                await print_output_text(output_text, f"Table data for {formatted_date} collected successfully \n")
+                await print_output_text(f"Table data for {formatted_date} collected successfully \n")
 
             except PageError as e:
-                await print_output_text(output_text, f"No data found for {formatted_date}: {str(e)}\n")
+                await print_output_text(f"No data found for {formatted_date}: {str(e)}\n")
 
             current_date += timedelta(days=1)
 
         # Save combined data to CSV
-        folder_name = f'data'
-        file_name = f'{folder_name}/combined_table_data_{start_date}_{end_date}.csv'
-        # Ensure the folder exists
-        os.makedirs(folder_name, exist_ok=True)
-        if combined_data:
-            with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(combined_headers)  # Write headers as the first row
-                csvwriter.writerows(combined_data)  # Write data rows
-            output_text.insert(tk.END, f"Combined table data saved to '{file_name}' successfully. \n")
+        save_folder = filedialog.askdirectory(initialdir=os.getcwd(), title="Select Folder to Save Data")
+        if save_folder:
+            file_name = await  save_data_to_file(combined_headers, combined_data, save_folder)
+            output_text.insert(tk.END, f'download the report to this folder successfully {file_name}')
             output_text.update_idletasks()  # Update the widget immediately
-            await print_output_text(output_text, f"Combined table data saved to '{file_name}' successfully. \n")
-
+            print(f'download the report to this folder successfully {file_name}')
     finally:
         await browser.close()
         end_time = time.time()
         total_time = end_time - start_time
         output_text.insert(tk.END, f"Total execution time: {total_time:.2f} seconds \n")
         output_text.update_idletasks()  # Update the widget immediately
-        await print_output_text(output_text, f"Total execution time: {total_time:.2f} seconds \n")
+        await print_output_text(f"Total execution time: {total_time:.2f} seconds \n")
 
 
 async def start_scraping_async(start_date_str, end_date_str, output_text):
