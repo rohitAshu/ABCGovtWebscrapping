@@ -38,7 +38,7 @@ APP_TITLE = "Daily License Report"
 APP_HEADING = "Welcome to the ABC Liquor Daily Report App"
 APP_BUTTON_NAME = "Generate Report"
 PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"
-HEADLESS = True
+HEADLESS = False
 
 
 # Function to scrape and save table data from the specified date range
@@ -62,7 +62,10 @@ async def scrape_and_save_table_data(start_date, end_date, output):
     """
     start_time = time.time()
     print_the_output_statement(
-        output, "Processing... Please wait for the generating the report."
+        output, "Data Processing Started..."
+    )
+    print_the_output_statement(
+        output, "Please wait for the Report generation."
     )
     executable_path = find_chrome_executable()
     print(executable_path)
@@ -102,7 +105,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                 "#daily-report-datepicker", current_date.strftime("%B %d, %Y")
             )
             print_the_output_statement(
-                output, f"Generating Report on the dated  {formatted_date}..."
+                output, f"Fetching data for the date  {formatted_date}..."
             )
             print(f"Typed '{formatted_date}' into the input box")
             await page.waitForSelector("#daily-report-submit")
@@ -285,7 +288,7 @@ if __name__ == "__main__":
     root.title(APP_TITLE)
 
     # # Maximize the window to full-screen (optional)
-    root.attributes("-zoomed", True)  # for Windows/Linux
+    # root.attributes("-zoomed", True)  # for Windows/Linux
     # root.attributes('-fullscreen', True)  # for macOS
 
     # Custom Font
