@@ -53,75 +53,10 @@ source myworld/bin/activate
 ```
 pip install -r requirements.txt
 ```
-
 # Individual Dependencies
-
 ***pyppeteer***
 ```
 pip install pyppeteer
-```
-***Fake Useragent***
-```
-pip install fake-useragent
-```
-
-***Setuptools***
-```
-python -m pip install --upgrade pip setuptools
-```
-***Wbdriver Manager***
-```
-pip install webdriver-manager
-```
-***selenium-wire***
-```
-pip install selenium-wire
-```
-
-***python-dotenv***
-```
-pip install python-dotenv
-```
-
-## Environment Variables
- To run this project, you will need to add the following environment variables to your .env file
-# Create .env file
-in linux
-```
-touch .env
-```
-in window 
-```
-type nul > .env
-```
-## Setup .env File 
-```
-PAIDPROXY = FALSE
-PROXY_HOST = PROXY_HOST
-PROXY_PORT = PROXY_PORT
-PROXY_USERNAME = PROXY_USERNAME
-PROXY_PASSWORD = PROXY_PASSWORD
-```
-## Chromedriver
-* Ensure that the version of Chromedriver matches the version of Google Chrome installed on your system for proper functionality.
-# Redish
-```
-sudo apt install redis-server
-```
-```commandline
-sudo apt install redis-tools
-```
-```commandline
-redis-cli ping
-```
-```commandline
-redis-cli
-```
-```commandline
-redis-server
-```
-```commandline
-pip install django-redis
 ```
 # Run Project
 **Windows:**

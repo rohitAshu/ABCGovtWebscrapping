@@ -24,10 +24,11 @@ import os
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
-from tkinter import messagebox, filedialog
+from tkinter import filedialog
+from tkinter import ttk
+from CTkMessagebox import CTkMessagebox
 from pyppeteer import launch
-from pyppeteer.errors import PageError, TimeoutError, ElementHandleError
-
+from pyppeteer.errors import PageError, ElementHandleError
 from tkcalendar import DateEntry
 
 from utils import print_the_output_statement, save_data_to_file
@@ -37,7 +38,7 @@ APP_TITLE = "Daily License Report"
 APP_HEADING = "Welcome to the ABC Liquor Daily Report App"
 APP_BUTTON_NAME = "Generate Report"
 PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"
-HEADLESS = True
+HEADLESS = False
 
 
 # Function to scrape and save table data from the specified date range
@@ -65,7 +66,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         current_date = datetime.strptime(start_date, '%B %d, %Y')
         end_date = datetime.strptime(end_date, '%B %d, %Y')
 
-        # Loop through each date in the range
+        # Loop through each date in the ranger
         while current_date <= end_date:
             formatted_date = current_date.strftime('%B_%d_%Y')
             await page.waitForSelector('#daily-report-datepicker')
@@ -156,6 +157,11 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         end_time = time.time()
         total_time = end_time - start_time
         print_the_output_statement(output, f"Total execution time: {total_time:.2f} seconds")
+
+        CTkMessagebox(message="Generated Report Successfully",
+                      icon="check", option_1="Thanks")
+
+
 # Function to validate date inputs and start the scraping process
 async def start_scraping_genrating_daily_report_async(
         start_date_str, end_date_str, outputted
@@ -167,14 +173,10 @@ async def start_scraping_genrating_daily_report_async(
     print("start_date", start_date)
     end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
     print("end_date", end_date)
-    if start_date > current_date or end_date > current_date:
-        messagebox.showerror(
-            "Error", "Please select a date that is 2 or more days past."
-        )
+    if start_date > current_date or end_date > current_date or start_date == current_date or end_date == current_date:
+        CTkMessagebox(title="Error", message="Please select a date that is 2 or more days past.", icon="cancel")
     elif end_date < start_date:
-        messagebox.showerror(
-            "Error", "End date should be later than or equal to start date."
-        )
+        CTkMessagebox(title="Error", message="End date should be later than or equal to start date", icon="cancel")
     else:
         await scrape_and_save_table_data(start_date_str, end_date_str, outputted)
 
@@ -192,30 +194,63 @@ def generating_report():
 
 # Setting up the Tkinter GUI
 if __name__ == "__main__":
+    # Initialize Tkinter
     root = tk.Tk()
     root.title(APP_TITLE)
+
+    # # Maximize the window to full-screen (optional)
+    root.attributes('-zoomed', True)  # for Windows/Linux
+    # root.attributes('-fullscreen', True)  # for macOS
+
+    # Custom Font
+    root.option_add("*Font", "Handfine")
+
+    # Heading label with custom font
     heading_label = tk.Label(
-        root, text=APP_HEADING, font=("Helvetica", 18, "bold"), pady=20
+        root, text=APP_HEADING, font=("Handfine", 18, "bold italic"), pady=20
     )
     heading_label.pack()
-    form_frame = tk.Frame(root)
+    # Create a style for the shadow box effect
+    style = ttk.Style()
+    style.configure("Shadow.TFrame", background="light blue", borderwidth=5, relief="ridge")
+
+    # Form frame for date selection
+    form_frame = ttk.Frame(root, padding=(10, 10, 10, 10))
     form_frame.pack(pady=20)
+    # Modern color scheme
+    # Start Date Label and Entry
     start_date_label = tk.Label(form_frame, text="Start Date:")
     start_date_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
     start_date_entry = DateEntry(
-        form_frame, width=12, background="darkblue", foreground="white", borderwidth=2
+        form_frame, width=12, background='black', foreground="#f0f0f0", borderwidth=2,
+        date_pattern='yyyy-mm-dd'
     )
     start_date_entry.grid(row=0, column=1, padx=10, pady=10)
+
+    # End Date Label and Entry
     end_date_label = tk.Label(form_frame, text="End Date:")
     end_date_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     end_date_entry = DateEntry(
-        form_frame, width=12, background="darkblue", foreground="white", borderwidth=2
+        form_frame, width=12, background="darkblue", foreground="white", borderwidth=2, date_pattern='yyyy-mm-dd'
     )
     end_date_entry.grid(row=1, column=1, padx=10, pady=10)
-    scrape_button = tk.Button(root, text=APP_BUTTON_NAME, command=generating_report)
+    # Generate Report Button
+    scrape_button = tk.Button(root, text=APP_BUTTON_NAME, command=generating_report,
+                              font=("Arial", 12, "bold"), fg='white', bg='blue')
     scrape_button.pack()
-    output_text = tk.Text(root, height=10, width=100)
+
+    # Create a frame for the text widget with border and shadow effect
+    output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
+    output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
+
+    # Create output text widget inside the frame with light gray background
+    output_text = tk.Text(output_frame, height=10, width=100, font=("Arial", 12), bg="light blue")
+    output_text.pack(fill=tk.BOTH, expand=True)
+
+    # Configure a bold tag for the text widget
     output_text.tag_configure("bold", font=("Arial", 12, "bold"))
-    output_text.pack(pady=20)
+
+    # Start Tkinter event loop
     root.mainloop()
+
     print("Script execution completed!")
