@@ -11,11 +11,6 @@
 ### Python Installation Process
 Before proceeding, ensure Python is installed on your system. If not, you can download and install Python from [python.org](https://www.python.org/downloads/).
 
-
-
-### Installing Django
-Once the virtual environment is set up, you can install Django within it. Refer to the [Django documentation](https://docs.djangoproject.com/en/stable/intro/install/) for detailed instructions on installing Django.
-
 ## Getting Started
 
 ### Clone the Project
@@ -57,18 +52,6 @@ pip install -r requirements.txt
 ***pyppeteer***
 ```
 pip install pyppeteer
-```
-# Run Project
-**Windows:**
-
-```bash
-python manage.py runserver
-```
-
-**Unix/MacOS/LLinux:**
-
-```bash
-python3 manage.py runserver
 ```
 
 
