@@ -210,7 +210,10 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         )
 
         CTkMessagebox(
-            message="Generated Report Successfully", icon="check", option_1="Thanks"
+            title="Report Status",  # Set the title of the message box,
+            message="Generated Report Successfully",
+            icon="check",
+            option_1="Thanks"
         )
 
 

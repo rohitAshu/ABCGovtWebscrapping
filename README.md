@@ -57,8 +57,8 @@ python3 license_report_gen.py
 pip install babel
 
 
-#### Optional Step: Already completed....
 # Generates the spec file
+#### Optional Step:#### Already completed....
 pyinstaller --onefile license_report_gen.py  
 # Modify the spec file to include 'babel.numbers' as a hidden import
 
