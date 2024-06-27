@@ -47,7 +47,7 @@ pip install pyppeteer
 python license_report_gen.py
 ```
 
-**Unix/MacOS/LLinux:**
+**Unix/MacOS/Linux:**
 
 ```bash
 python3 license_report_gen.py
