@@ -398,6 +398,15 @@ if __name__ == "__main__":
         bg="blue",
     )
     scrape_button.pack(padx=10, pady=10)
+    scrape_button1 = tk.Button(
+        root,
+        text='Closed',
+        command=lambda: handle_button_click('stop'),
+        font=("Arial", 12, "bold"),
+        fg="white",
+        bg="blue",
+    )
+    scrape_button1.pack(padx=10, pady=10)
     # Create a frame for the tt widget with border and shadow effect
     output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
     output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
