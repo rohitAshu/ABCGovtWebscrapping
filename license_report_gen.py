@@ -342,6 +342,7 @@ def handle_button_click(action):
             )
         )
     else :
+        root.destroy()
         print('xzcxzcxzc')
 
 
@@ -400,7 +401,7 @@ if __name__ == "__main__":
     scrape_button.pack(padx=10, pady=10)
     scrape_button1 = tk.Button(
         root,
-        text='Closed',
+        text='Close Window',
         command=lambda: handle_button_click('stop'),
         font=("Arial", 12, "bold"),
         fg="white",
