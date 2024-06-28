@@ -327,9 +327,9 @@ async def start_scraping_genrating_daily_report_async(
 
 
 # Function to handle the button click event
-def stop_genrating_report():
-    print(page_created)
-    print('zxcxzcxzc')
+# def stop_genrating_report():
+#     print(page_created)
+#     print('zxcxzcxzc')
 
 
 def handle_button_click(action):
@@ -390,24 +390,39 @@ if __name__ == "__main__":
                                date_pattern="yyyy-mm-dd")
     end_date_entry.grid(row=1, column=1, padx=10, pady=10)
     # Generate Report Button
+    button_frame = tk.Frame(root)
+    button_frame.pack(pady=20)
+    # Generate Report Button
     scrape_button = tk.Button(
-        root,
+        button_frame,
         text=APP_BUTTON_NAME,
         command=lambda: handle_button_click('start'),
         font=("Arial", 12, "bold"),
         fg="white",
-        bg="#119ACA",
+        bg="blue",
+        relief="solid",
+        borderwidth=1,
+        highlightbackground="blue",
+        highlightcolor="blue",
+        highlightthickness=2
     )
-    scrape_button.pack(padx=10, pady=10)
+    scrape_button.pack(side=tk.LEFT, padx=10)
+
     scrape_button1 = tk.Button(
-        root,
-        text='Close Window',
+        button_frame,
+        text='Cancel Browser',
         command=lambda: handle_button_click('stop'),
         font=("Arial", 12, "bold"),
         fg="white",
-        bg="#119ACA",
+        bg="red",
+        relief="solid",
+        borderwidth=1,
+        highlightbackground="blue",
+        highlightcolor="blue",
+        highlightthickness=2
     )
-    scrape_button1.pack(padx=10, pady=10)
+    scrape_button1.pack(side=tk.LEFT, padx=10)
+    
     # Create a frame for the tt widget with border and shadow effect
     output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
     output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)

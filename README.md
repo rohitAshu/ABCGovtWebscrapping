@@ -31,6 +31,13 @@ source myworld/bin/activate
 
 # Install Dependencies
 ### Using requirements.txt
+
+**Windows:**
+
+```bash
+python.exe -m pip install -r requirements.txt
+```
+**Unix/MacOS/Linux:**
 ```
 pip install -r requirements.txt
 ```
@@ -44,7 +51,7 @@ pip install pyppeteer
 **Windows:**
 
 ```bash
-python license_report_gen.py
+python.exe license_report_gen.py
 ```
 
 **Unix/MacOS/Linux:**
