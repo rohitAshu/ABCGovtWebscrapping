@@ -396,7 +396,7 @@ if __name__ == "__main__":
         command=lambda: handle_button_click('start'),
         font=("Arial", 12, "bold"),
         fg="white",
-        bg="blue",
+        bg="#119ACA",
     )
     scrape_button.pack(padx=10, pady=10)
     scrape_button1 = tk.Button(
@@ -405,14 +405,14 @@ if __name__ == "__main__":
         command=lambda: handle_button_click('stop'),
         font=("Arial", 12, "bold"),
         fg="white",
-        bg="blue",
+        bg="#119ACA",
     )
     scrape_button1.pack(padx=10, pady=10)
     # Create a frame for the tt widget with border and shadow effect
     output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
     output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
     # Create output text widget inside the frame with light gray background
-    output_text = tk.Text(output_frame, height=10, width=100, font=("Arial", 12), bg="light blue")
+    output_text = tk.Text(output_frame, height=10, width=100, font=("Arial", 12), bg="#ccf7ff")
     output_text.pack(fill=tk.BOTH, expand=True)
     # Configure a bold tag for the text widget
     output_text.tag_configure("bold", font=("Arial", 12, "bold"))
