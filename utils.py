@@ -13,7 +13,10 @@ import csv
 import os
 import platform
 import shutil
+import threading
 import tkinter as tk
+import json
+
 from CTkMessagebox import CTkMessagebox
 
 
@@ -93,8 +96,23 @@ def find_chrome_executable():
                 return path
     elif system == 'Linux':
         chrome_path = shutil.which("google-chrome")
-
         if chrome_path is None:
             chrome_path = shutil.which("google-chrome-stable")
         return chrome_path
     return None
+
+
+def print_current_thread():
+    current_thread = threading.current_thread()
+    print("---------- Current Thread:", current_thread.name)
+
+
+def convert_array_to_json(keys, data):
+    json_data = []
+    for item in data:
+        # Create a dictionary mapping combined_headers to item values
+        item_dict = {keys[i]: item[i] for i in range(len(keys))}
+        # Append the dictionary to json_data
+        json_data.append(item_dict)
+    json_output = json.dumps(json_data, indent=4)
+    return json_output
