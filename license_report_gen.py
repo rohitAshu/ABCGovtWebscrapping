@@ -24,10 +24,12 @@ import asyncio
 import os
 import time
 import tkinter as tk
+import concurrent.futures
+
 from datetime import datetime, timedelta
 from tkinter import filedialog
 from tkinter import ttk
-
+from concurrent.futures import ThreadPoolExecutor
 import pyppeteer
 from CTkMessagebox import CTkMessagebox
 from pyppeteer import launch
@@ -48,7 +50,7 @@ APP_HEADING = "Welcome to the ABC Liquor Daily Report App"
 APP_BUTTON_NAME = "Generate Report"
 PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"
 HEADLESS = True
-
+MAX_THREAD_COUNT = 10
 page_created = False
 
 
@@ -85,6 +87,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
             "defaultViewport": None,
         }
     )
+    scrape_button1.config(state=tk.NORMAL)
     print(browser)
     combined_data = []
     combined_headers = []
@@ -235,7 +238,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         end_time = time.time()
         total_time = end_time - start_time
         json_data = convert_array_to_json(combined_headers, combined_data)
-        # print("json_data", json_data)
+        print("json_data", json_data)
         if len(combined_data) == 0 and len(combined_headers) == 0:
             CTkMessagebox(
                 title="Error",
@@ -279,71 +282,60 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         )
 
 
-# Function to validate date inputs and start the scraping process
-async def start_scraping_genrating_daily_report_async(
-        start_date_str, end_date_str, outputted
-):
-    """
-    Validates the selected start and end dates against the current date
-    and initiates asynchronous scraping and data saving if validation passes.
-
-    Args:
-        start_date_str (str): Selected start date in "%B %d, %Y" format.
-        end_date_str (str): Selected end date in "%B %d, %Y" format.
-        outputted (tk.Text): tkinter Text widget to display output or errors.
-
-    Notes:
-        - Converts `start_date_str` and `end_date_str` to datetime objects for comparison.
-        - Checks if the selected dates are valid based on current date and relative comparisons.
-        - Displays error messages using `CTkMessagebox` if date validations fail.
-        - Calls `scrape_and_save_table_data` asynchronously if date validations pass.
-    """
-    current_date_str = datetime.now().date().strftime("%B %d, %Y")
-    current_date = datetime.strptime(current_date_str, "%B %d, %Y").date()
-    print("current_date", current_date)
-    start_date = datetime.strptime(start_date_str, "%B %d, %Y").date()
-    print("start_date", start_date)
-    end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
-    print("end_date", end_date)
-    if (
-            start_date > current_date
-            or end_date > current_date
-            or start_date == current_date
-            or end_date == current_date
-    ):
-        CTkMessagebox(
-            title="Error",
-            message="Please select a date that is 2 or more days past.",
-            icon="cancel",
-        )
-    elif end_date < start_date:
-        CTkMessagebox(
-            title="Error",
-            message="End date should be later than or equal to start date",
-            icon="cancel",
-        )
-    else:
-        await scrape_and_save_table_data(start_date_str, end_date_str, outputted)
-
-
-# Function to handle the button click event
-# def stop_genrating_report():
-#     print(page_created)
-#     print('zxcxzcxzc')
-
-
 def handle_button_click(action):
+    """
+        Handle button click events based on the action parameter.
+
+        Parameters:
+        - action (str): The action to perform. 'start' starts the scraping process,
+          'stop' stops the application.
+
+        This function validates the selected date range and triggers the scraping
+        process accordingly. It manages button states to ensure the UI remains responsive
+        during asynchronous scraping tasks.
+        """
     if action == 'start':
+        current_date_str = datetime.now().date().strftime("%B %d, %Y")
+        current_date = datetime.strptime(current_date_str, "%B %d, %Y").date()
+        print("current_date", current_date)
         start_date_str = start_date_entry.get_date().strftime("%B %d, %Y")
+        start_date = datetime.strptime(start_date_str, "%B %d, %Y").date()
+        print("start_date", start_date)
         end_date_str = end_date_entry.get_date().strftime("%B %d, %Y")
-        asyncio.run(
-            start_scraping_genrating_daily_report_async(
-                start_date_str, end_date_str, output_text
+        end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
+        print("end_date", end_date)
+        print('date validation Initialized')
+        if not (not (start_date > current_date) and not (
+                end_date > current_date)) or start_date == current_date or end_date == current_date:
+            CTkMessagebox(
+                title="Error",
+                message="Please select a date that is 2 or more days past.",
+                icon="cancel",
             )
-        )
-    else :
-        root.destroy()
-        print('xzcxzcxzc')
+        elif end_date < start_date:
+            CTkMessagebox(
+                title="Error",
+                message="End date should be later than or equal to start date",
+                icon="cancel",
+            )
+        else:
+            scrape_button.config(state=tk.DISABLED)
+            scrape_button1.config(state=tk.NORMAL)
+            with ThreadPoolExecutor(max_workers=MAX_THREAD_COUNT) as executor:
+                # Schedule the asyncio task in the event loop running in the main thread
+                loop = asyncio.get_event_loop()
+                asyncio_task = loop.create_task(
+                    scrape_and_save_table_data(
+                        start_date_str, end_date_str, output_text
+                    )
+                )
+                loop.run_until_complete(asyncio_task)
+                # Enable the generate report button after task completion
+                scrape_button.config(state=tk.NORMAL)
+                scrape_button1.config(state=tk.DISABLED)
+    else:
+        print('zxcxzcxzc')
+        # root.destroy()
 
 
 # Setting up the Tkinter GUI
@@ -422,7 +414,7 @@ if __name__ == "__main__":
         highlightthickness=2
     )
     scrape_button1.pack(side=tk.LEFT, padx=10)
-    
+
     # Create a frame for the tt widget with border and shadow effect
     output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
     output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
