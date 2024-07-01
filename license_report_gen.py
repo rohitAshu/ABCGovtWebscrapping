@@ -309,7 +309,8 @@ def handle_button_click(action):
         print("end_date", end_date)
         print("date validation Initialized")
         if (
-            not (not (start_date > current_date) and not (end_date > current_date))
+            start_date > current_date
+            or end_date > current_date
             or start_date == current_date
             or end_date == current_date
         ):
