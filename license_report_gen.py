@@ -75,7 +75,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         - Uses `CTkMessagebox` to notify the user upon successful completion of the operation.
     """
     start_time = time.time()
-    output.delete('1.0', tk.END)
+    output.delete("1.0", tk.END)
     print_the_output_statement(output, "Data Processing Started...")
     print_the_output_statement(output, "Please wait for the Report generation.")
     executable_path = find_chrome_executable()
@@ -136,7 +136,7 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                 await page.click("#daily-report-submit")
                 print("daily-report-submit element is clicked")
                 await asyncio.sleep(10)
-                check_script = '''
+                check_script = """
                         () => {
                             const elements = document.querySelectorAll('.et_pb_code_inner');
                             for (let element of elements) {
@@ -146,12 +146,13 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                             }
                             return false;
                         }
-                    '''
+                    """
                 # Evaluate the script on the page
                 element_exists = await page.evaluate(check_script)
                 if element_exists:
                     print_the_output_statement(
-                        output, f"There were no new applications taken on the selected report date. {formatted_date}:"
+                        output,
+                        f"There were no new applications taken on the selected report date. {formatted_date}:",
                     )
                 else:
                     scroll_distance = int(viewport_height * 1.1)
@@ -212,7 +213,9 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                         )
                         await asyncio.sleep(5)  # Adjust as needed
                         print("license_report tbody tr element is found")
-                    print_the_output_statement(output, f"Data found for {formatted_date}.")
+                    print_the_output_statement(
+                        output, f"Data found for {formatted_date}."
+                    )
                 # print("combined_data", combined_data)
                 current_date += timedelta(days=1)
     except PyppeteerTimeoutError as timeout_error:
@@ -284,17 +287,17 @@ async def scrape_and_save_table_data(start_date, end_date, output):
 
 def handle_button_click(action):
     """
-        Handle button click events based on the action parameter.
+    Handle button click events based on the action parameter.
 
-        Parameters:
-        - action (str): The action to perform. 'start' starts the scraping process,
-          'stop' stops the application.
+    Parameters:
+    - action (str): The action to perform. 'start' starts the scraping process,
+      'stop' stops the application.
 
-        This function validates the selected date range and triggers the scraping
-        process accordingly. It manages button states to ensure the UI remains responsive
-        during asynchronous scraping tasks.
-        """
-    if action == 'start':
+    This function validates the selected date range and triggers the scraping
+    process accordingly. It manages button states to ensure the UI remains responsive
+    during asynchronous scraping tasks.
+    """
+    if action == "start":
         current_date_str = datetime.now().date().strftime("%B %d, %Y")
         current_date = datetime.strptime(current_date_str, "%B %d, %Y").date()
         print("current_date", current_date)
@@ -304,9 +307,12 @@ def handle_button_click(action):
         end_date_str = end_date_entry.get_date().strftime("%B %d, %Y")
         end_date = datetime.strptime(end_date_str, "%B %d, %Y").date()
         print("end_date", end_date)
-        print('date validation Initialized')
-        if not (not (start_date > current_date) and not (
-                end_date > current_date)) or start_date == current_date or end_date == current_date:
+        print("date validation Initialized")
+        if (
+            not (not (start_date > current_date) and not (end_date > current_date))
+            or start_date == current_date
+            or end_date == current_date
+        ):
             CTkMessagebox(
                 title="Error",
                 message="Please select a date that is 2 or more days past.",
@@ -334,7 +340,7 @@ def handle_button_click(action):
                 scrape_button.config(state=tk.NORMAL)
                 scrape_button1.config(state=tk.DISABLED)
     else:
-        print('zxcxzcxzc')
+        print("zxcxzcxzc")
         # root.destroy()
 
 
@@ -378,8 +384,14 @@ if __name__ == "__main__":
     # End Date Label and Entry
     end_date_label = tk.Label(form_frame, text="End Date:")
     end_date_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
-    end_date_entry = DateEntry(form_frame, width=12, background="darkblue", foreground="white", borderwidth=2,
-                               date_pattern="yyyy-mm-dd")
+    end_date_entry = DateEntry(
+        form_frame,
+        width=12,
+        background="darkblue",
+        foreground="white",
+        borderwidth=2,
+        date_pattern="yyyy-mm-dd",
+    )
     end_date_entry.grid(row=1, column=1, padx=10, pady=10)
     # Generate Report Button
     button_frame = tk.Frame(root)
@@ -388,7 +400,7 @@ if __name__ == "__main__":
     scrape_button = tk.Button(
         button_frame,
         text=APP_BUTTON_NAME,
-        command=lambda: handle_button_click('start'),
+        command=lambda: handle_button_click("start"),
         font=("Arial", 12, "bold"),
         fg="white",
         bg="blue",
@@ -396,14 +408,14 @@ if __name__ == "__main__":
         borderwidth=1,
         highlightbackground="blue",
         highlightcolor="blue",
-        highlightthickness=2
+        highlightthickness=2,
     )
     scrape_button.pack(side=tk.LEFT, padx=10)
 
     scrape_button1 = tk.Button(
         button_frame,
-        text='Cancel Browser',
-        command=lambda: handle_button_click('stop'),
+        text="Cancel Browser",
+        command=lambda: handle_button_click("stop"),
         font=("Arial", 12, "bold"),
         fg="white",
         bg="red",
@@ -411,7 +423,7 @@ if __name__ == "__main__":
         borderwidth=1,
         highlightbackground="blue",
         highlightcolor="blue",
-        highlightthickness=2
+        highlightthickness=2,
     )
     scrape_button1.pack(side=tk.LEFT, padx=10)
 
@@ -419,7 +431,9 @@ if __name__ == "__main__":
     output_frame = tk.Frame(root, bd=2, relief="groove", bg="white", padx=10, pady=10)
     output_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
     # Create output text widget inside the frame with light gray background
-    output_text = tk.Text(output_frame, height=10, width=100, font=("Arial", 12), bg="#ccf7ff")
+    output_text = tk.Text(
+        output_frame, height=10, width=100, font=("Arial", 12), bg="#ccf7ff"
+    )
     output_text.pack(fill=tk.BOTH, expand=True)
     # Configure a bold tag for the text widget
     output_text.tag_configure("bold", font=("Arial", 12, "bold"))

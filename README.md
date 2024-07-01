@@ -60,15 +60,20 @@ python.exe license_report_gen.py
 python3 license_report_gen.py
 ```
 
-# To create an windows executable ".exe" file.
+# To create a windows executable ".exe" file.
+```bash
 pip install babel
-
+```
 
 # Generates the spec file
 #### Optional Step:#### Already completed....
+```bash
 pyinstaller --onefile license_report_gen.py  
+```
 # Modify the spec file to include 'babel.numbers' as a hidden import
 
 
 # Build the executable using the spec file
+```bash
 pyinstaller license_report_gen.spec
+```
