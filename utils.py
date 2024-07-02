@@ -16,8 +16,9 @@ import platform
 import shutil
 import threading
 import tkinter as tk
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 import json
-
 from CTkMessagebox import CTkMessagebox
 
 
@@ -43,22 +44,32 @@ def print_the_output_statement(output, message):
 def save_data_to_file(json_data, save_folder):
     try:
         os.makedirs(save_folder, exist_ok=True)
-        file_name = f"{save_folder}/combined_table_data.csv"
+        file_name = f"{save_folder}/combined_table_data.xlsx"
+
         # Parse JSON data
         data = json.loads(json_data)
-        # Extract field names from the first entry (assuming all entries have the same structure)
-        fieldnames = list(data[0].keys())
-        # Write data to CSV file
-        with open(file_name, mode="w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            for entry in data:
-                writer.writerow(entry)
+
+        # Create a new Workbook
+        wb = Workbook()
+        ws = wb.active
+
+        # Add headers from JSON keys
+        headers = list(data[0].keys())
+        ws.append(headers)
+
+        # Add data rows
+        for item in data:
+            ws.append([item[key] for key in headers])
+
+        # Save workbook to file
+        wb.save(file_name)
+
         return file_name
+
     except Exception as e:
-        CTkMessagebox(
-            title="Error", message=f"Error saving data: {str(e)}", icon="cancel"
-        )
+        # Handle exceptions
+        print(f"Error saving data: {str(e)}")
+        return None
 
 
 def find_chrome_executable():

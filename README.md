@@ -68,7 +68,7 @@ pip install babel
 # Generates the spec file
 #### Optional Step:#### Already completed....
 ```bash
-pyinstaller --onefile license_report_gen.py  
+pyinstaller --onefile --hidden-import=babel.numbers --hidden-import=babel.localtime --windowed license_report_gen.py   
 ```
 # Modify the spec file to include 'babel.numbers' as a hidden import
 
