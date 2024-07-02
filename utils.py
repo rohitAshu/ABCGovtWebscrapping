@@ -40,32 +40,21 @@ def print_the_output_statement(output, message):
     print(message)
 
 
-def save_data_to_file(combined_headers, combined_data, save_folder):
-    """
-    Save combined headers and data to a CSV file in the specified folder.
-    Args:
-        combined_headers (list): List of header strings for the CSV file.
-        combined_data (list of lists): List of data rows (each row is a list of values).
-        save_folder (str): Path to the folder where the CSV file should be saved.
-    Returns:
-        str: File path of the saved CSV file if successful, None otherwise.
-    Raises:
-        IOError: If there's an error creating or writing to the CSV file.
-    Notes:
-        - The function creates the `save_folder` if it doesn't exist.
-        - It writes `combined_headers` as the first row and `combined_data` as
-        subsequent rows to a CSV file.
-        - Uses UTF-8 encoding for writing the CSV file.
-    """
+def save_data_to_file(json_data, save_folder):
     try:
         os.makedirs(save_folder, exist_ok=True)
         file_name = f"{save_folder}/combined_table_data.csv"
-        if combined_data:
-            with open(file_name, "w", newline="", encoding="utf-8") as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(combined_headers)  # Write headers as the first row
-                csvwriter.writerows(combined_data)  # Write data rows
-            return file_name
+        # Parse JSON data
+        data = json.loads(json_data)
+        # Extract field names from the first entry (assuming all entries have the same structure)
+        fieldnames = list(data[0].keys())
+        # Write data to CSV file
+        with open(file_name, mode="w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for entry in data:
+                writer.writerow(entry)
+        return file_name
     except Exception as e:
         CTkMessagebox(
             title="Error", message=f"Error saving data: {str(e)}", icon="cancel"
@@ -131,3 +120,56 @@ def convert_array_to_json(keys, data):
         json_data.append(item_dict)
     json_output = json.dumps(json_data, indent=4)
     return json_output
+
+
+def generate_json_data(main_json):
+    data1 = json.loads(main_json)
+    parsed_data = []
+    for entry in data1:
+        address = entry["Primary Owner and Premises Addr."]
+        lines = address.splitlines()
+        dba = lines[0].strip()  # Assuming the first line is DBA
+        dba = " ".join(dba.split())
+        applicant = (
+            lines[0].split("                            ")[-1].strip()
+        )  # Assuming the first line contains both the DBA and the Applicant
+        street = lines[1].strip()  # Assuming the second line is Street
+        city_state_zip = lines[
+            2
+        ].strip()  # Assuming the third line is City, State ZipCode
+
+        # Split City, State, ZipCode
+        city_state_zip_parts = city_state_zip.split(", ")
+        city = city_state_zip_parts[0].strip()
+        state_zip = city_state_zip_parts[1].strip()
+        # Separate State and ZipCode
+        state = state_zip.split()[0].strip()
+        zipcode = state_zip.split()[1].strip()
+        # Print or use the parsed data as needed
+        parsed_entry = {
+            "DBA": dba,
+            "Applicant": applicant,
+            "Street": street,
+            "City": city,
+            "State": state,
+            "ZipCode": zipcode,
+        }
+        parsed_data.append(parsed_entry)
+    json_data2 = json.dumps(parsed_data, indent=4)
+    return json_data2
+
+
+def merge_json(json_data1, json_data2):
+    # Parse JSON data
+    data1 = json.loads(json_data1)
+    data2 = json.loads(json_data2)
+    merged_data = []
+    for i in range(len(data1)):
+        merged_entry = data1[i].copy()  # Copy the original entry from data1
+        premises_info = data2[i]  # Get premises address info from data2
+        # Append premises address info directly after the last field in each entry of data1
+        for key, value in premises_info.items():
+            merged_entry[key] = value
+        merged_data.append(merged_entry)
+    merged_json = json.dumps(merged_data, indent=4)
+    return merged_json

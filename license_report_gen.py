@@ -14,7 +14,7 @@ Libraries:
 
 Functions:
 - scrape_and_save_table_data: Asynchronously scrapes and saves table data from the website.
-- start_scraping_genrating_daily_report_async: Initiates scraping based on user-selected date range.
+- start_scraping_generating_daily_report_async: Initiates scraping based on user-selected date range.
 - generating_report: Callback function for GUI button to start the scraping process.
 - Other utility functions imported from 'utils.py' for printing output and saving data to file.
 
@@ -25,7 +25,7 @@ import os
 import time
 import tkinter as tk
 import concurrent.futures
-
+import json
 from datetime import datetime, timedelta
 from tkinter import filedialog
 from tkinter import ttk
@@ -42,6 +42,8 @@ from utils import (
     find_chrome_executable,
     convert_array_to_json,
     print_current_thread,
+    generate_json_data,
+    merge_json,
 )
 
 # Application constants
@@ -136,17 +138,9 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                 await page.click("#daily-report-submit")
                 print("daily-report-submit element is clicked")
                 await asyncio.sleep(10)
-                check_script = """
-                        () => {
-                            const elements = document.querySelectorAll('.et_pb_code_inner');
-                            for (let element of elements) {
-                                if (element.textContent.trim() === 'There were no new applications taken on the selected report date.') {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-                    """
+                check_script = """() => { const elements = document.querySelectorAll('.et_pb_code_inner'); for (let 
+                element of elements) { if (element.textContent.trim() === 'There were no new applications taken on 
+                the selected report date.') { return true; } } return false; }"""
                 # Evaluate the script on the page
                 element_exists = await page.evaluate(check_script)
                 if element_exists:
@@ -240,8 +234,23 @@ async def scrape_and_save_table_data(start_date, end_date, output):
         await browser.close()
         end_time = time.time()
         total_time = end_time - start_time
+        print("converting array to json")
         json_data = convert_array_to_json(combined_headers, combined_data)
-        print("json_data", json_data)
+        print("converted  array to json")
+        # Added the Regenerate the Second json on the based of the Primary Owner and Premises Addr.
+        print(
+            "Regenerating the Second json on the based of the Primary Owner and Premises Addr."
+        )
+        json_data2 = generate_json_data(json_data)
+        print(
+            "Regenerated the Second json on the based of the Primary Owner and Premises Addr."
+        )
+        # print(json_data2)
+        print("merging the two json and convert the combined json data ")
+        final_json = merge_json(json_data, json_data2)
+        print_the_output_statement(
+            output, f"Total execution time: {total_time:.2f} seconds"
+        )
         if len(combined_data) == 0 and len(combined_headers) == 0:
             CTkMessagebox(
                 title="Error",
@@ -262,27 +271,20 @@ async def scrape_and_save_table_data(start_date, end_date, output):
                     initialdir=os.getcwd(), title="Select Folder to Save Data"
                 )
                 if save_folder:
-                    file_name = save_data_to_file(
-                        combined_headers, combined_data, save_folder
-                    )
-                    # print_the_output_statement(
-                    #     output,
-                    #     f"Generated Report sucessfully Download the Generated Report on the {save_folder} ",
-                    # )
+                    file_name = save_data_to_file(final_json, save_folder)
                     CTkMessagebox(
-                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {file_name} ",
+                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the "
+                                f"file to  {file_name} ",
                         icon="check",
                         option_1="Thanks",
                     )
                 else:
                     CTkMessagebox(
-                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} but you have cancelled the downlaod ",
+                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} but you have "
+                                f"cancelled the download ",
                         icon="check",
                         option_1="Thanks",
                     )
-        print_the_output_statement(
-            output, f"Total execution time: {total_time:.2f} seconds"
-        )
 
 
 def handle_button_click(action):
@@ -342,7 +344,7 @@ def handle_button_click(action):
                 scrape_button1.config(state=tk.DISABLED)
     else:
         print("zxcxzcxzc")
-        # root.destroy()
+        root.destroy()
 
 
 # Setting up the Tkinter GUI
