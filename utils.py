@@ -14,6 +14,7 @@ import csv
 import os
 import platform
 import shutil
+
 # from openpyxl import Workbook
 # from openpyxl.utils.dataframe import dataframe_to_rows
 import tkinter as tk
@@ -37,34 +38,34 @@ def print_the_output_statement(output, message):
         - Prints the message to the standard output (console).
     """
     output.insert(tk.END, f"{message} \n", "bold")
-    output.update_idletasks()  
+    output.update_idletasks()
     print(message)
 
 
 def save_data_to_file(json_data, save_folder, file_name, file_type):
     try:
         data = json.loads(json_data)
-        
+
         os.makedirs(save_folder, exist_ok=True)
         file_path = os.path.join(save_folder, f"{file_name}.{file_type}")
-        
-        if file_type == 'csv':
+
+        if file_type == "csv":
             with open(file_path, mode="w", newline="") as file:
-                writer = csv.DictWriter(file, fieldnames=list(data[0].keys()))  
+                writer = csv.DictWriter(file, fieldnames=list(data[0].keys()))
                 writer.writeheader()
                 writer.writerows(data)
         # elif file_type == 'xlsx':
         #     wb = Workbook()
         #     ws = wb.active
-        #     ws.append(list(data[0].keys()))  
+        #     ws.append(list(data[0].keys()))
         #     for item in data:
-        #         ws.append(list(item.values())) 
+        #         ws.append(list(item.values()))
         #     wb.save(file_path)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
-        
+
         return file_path
-    
+
     except Exception as e:
         print(f"Error saving data: {str(e)}")
         return None
@@ -127,14 +128,16 @@ def convert_array_to_json(keys, data):
 def generate_json_data(main_json):
     data1 = json.loads(main_json)
     parsed_data = []
-    
+
     for entry in data1:
-        address = entry.get("Primary Owner and Premises Addr.", "")  # Safely retrieve address, default to empty string
+        address = entry.get(
+            "Primary Owner and Premises Addr.", ""
+        )  # Safely retrieve address, default to empty string
         lines = address.splitlines()
 
         dba = lines[0].strip()  # Assuming the first line is DBA
         dba = " ".join(dba.split())
-        
+
         # Assuming the first line contains both the DBA and the Applicant
         if "                            " in lines[0]:
             dba_applicant_parts = lines[0].split("                            ")
@@ -143,15 +146,21 @@ def generate_json_data(main_json):
         else:
             applicant = ""
 
-        street = lines[1].strip() if len(lines) > 1 else ""  # Assuming the second line is Street
+        street = (
+            lines[1].strip() if len(lines) > 1 else ""
+        )  # Assuming the second line is Street
 
-        city_state_zip = lines[2].strip() if len(lines) > 2 else ""  # Assuming the third line is City, State ZipCode
+        city_state_zip = (
+            lines[2].strip() if len(lines) > 2 else ""
+        )  # Assuming the third line is City, State ZipCode
 
         # Split City, State, ZipCode
         city_state_zip_parts = city_state_zip.split(", ") if city_state_zip else []
-        
+
         city = city_state_zip_parts[0].strip() if len(city_state_zip_parts) > 0 else ""
-        state_zip = city_state_zip_parts[1].strip() if len(city_state_zip_parts) > 1 else ""
+        state_zip = (
+            city_state_zip_parts[1].strip() if len(city_state_zip_parts) > 1 else ""
+        )
 
         # Separate State and ZipCode
         state = state_zip.split()[0].strip() if state_zip else ""
@@ -167,7 +176,7 @@ def generate_json_data(main_json):
             "ZipCode": zipcode,
         }
         parsed_data.append(parsed_entry)
-    
+
     json_data2 = json.dumps(parsed_data, indent=4)
     return json_data2
 
@@ -195,24 +204,24 @@ def merge_json(json_data1, json_data2):
     # Parse JSON data
     data1 = json.loads(json_data1)
     data2 = json.loads(json_data2)
-    
+
     if len(data1) != len(data2):
         raise ValueError("Lengths of json_data1 and json_data2 must be the same.")
 
     merged_data = []
     for i in range(len(data1)):
         merged_entry = {}
-        
+
         # Copy all fields from data1[i] except "Primary Owner and Premises Addr."
         for key, value in data1[i].items():
             if key != "Primary Owner and Premises Addr.":
                 merged_entry[key] = value
-        
+
         # Append all fields from data2[i]
         for key, value in data2[i].items():
             merged_entry[key] = value
-        
+
         merged_data.append(merged_entry)
-    
+
     merged_json = json.dumps(merged_data, indent=4)
     return merged_json

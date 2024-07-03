@@ -31,7 +31,7 @@ PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/
 HEADLESS = True
 MAX_THREAD_COUNT = 10
 # FILE constants
-FILE_TYPE= 'csv' # csv or xlsx
+FILE_TYPE = "csv"  # csv or xlsx
 FILE_NAME = "ABCGovtWebscrapping"
 
 
@@ -82,14 +82,12 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
         start_date = datetime.strptime(start_date, "%B %d, %Y")
         end_date = datetime.strptime(end_date, "%B %d, %Y")
         while start_date <= end_date:
-            formatted_date = start_date.strftime(
-                "%m/%d/%Y"
-            ) 
+            formatted_date = start_date.strftime("%m/%d/%Y")
             print(formatted_date)
             load_page = await page_load(page, formatted_date)
             if load_page:
                 print(f"opened  successfully")
-                await asyncio.sleep(5)  
+                await asyncio.sleep(5)
                 viewport_height = await page.evaluate("window.innerHeight")
                 print("viewport_height element is found")
                 scroll_distance = int(viewport_height * 0.3)
@@ -120,9 +118,7 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     print("Scrolling....................")
                     await page.waitForSelector('select[name="license_report_length"]')
                     print("license_report_length element is found")
-                    await page.select(
-                        'select[name="license_report_length"]', "100"
-                    ) 
+                    await page.select('select[name="license_report_length"]', "100")
                     print("Option selected successfully.")
                     await asyncio.sleep(5)
                     headers = await page.evaluate(
@@ -154,7 +150,7 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                             print_the_output_statement(
                                 output, f"No more data found for {formatted_date}"
                             )
-                            break  
+                            break
                         is_disabled = await page.evaluate(
                             '(nextButton) => nextButton.classList.contains("disabled")',
                             next_button,
@@ -168,19 +164,19 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         await page.waitForSelector(
                             "#license_report tbody tr", timeout=30000
                         )
-                        await asyncio.sleep(5) 
+                        await asyncio.sleep(5)
                         print("license_report tbody tr element is found")
                     print_the_output_statement(
                         output, f"Data found for {formatted_date}."
                     )
-            start_date += timedelta(days=1)  
+            start_date += timedelta(days=1)
     except PyppeteerTimeoutError as timeout_error:
         CTkMessagebox(
             title="Error",
             message="Internal Error Occurred while running application. Please Try Again!!",
             icon="cancel",
         )
-    except pyppeteer.errors.NetworkError:  
+    except pyppeteer.errors.NetworkError:
         CTkMessagebox(
             title="Error",
             message="Internal Error Occurred while running application. Please Try Again!!",
@@ -222,7 +218,9 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     initialdir=os.getcwd(), title="Select Folder to Save Data"
                 )
                 if save_folder:
-                    file_name = save_data_to_file(final_json, save_folder,FILE_NAME, FILE_TYPE)
+                    file_name = save_data_to_file(
+                        final_json, save_folder, FILE_NAME, FILE_TYPE
+                    )
                     CTkMessagebox(
                         message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {file_name} ",
                         icon="check",
@@ -234,10 +232,14 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         icon="check",
                         option_1="Thanks",
                     )
-        print_the_output_statement(output, f"Total execution time: {total_time:.2f} seconds")
+        print_the_output_statement(
+            output, f"Total execution time: {total_time:.2f} seconds"
+        )
 
 
-def run_scraping_thread(loop, browser, start_date_str, end_date_str, output_text, start_time):
+def run_scraping_thread(
+    loop, browser, start_date_str, end_date_str, output_text, start_time
+):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(
         scrape_and_save_table_data(
@@ -297,7 +299,9 @@ root = tk.Tk()
 root.title(APP_TITLE)
 root.option_add("*Font", "Handfine")
 
-heading_label = tk.Label(root, text=APP_HEADING, font=("Handfine", 18, "bold italic"), pady=20)
+heading_label = tk.Label(
+    root, text=APP_HEADING, font=("Handfine", 18, "bold italic"), pady=20
+)
 heading_label.pack()
 style = ttk.Style()
 style.configure("Shadow.TFrame", background="light blue", borderwidth=5, relief="ridge")
@@ -331,7 +335,7 @@ button_frame.pack(pady=20)
 scrape_button = tk.Button(
     button_frame,
     text=APP_BUTTON_NAME,
-    command= generate_daily_report,
+    command=generate_daily_report,
     font=("Arial", 12, "bold"),
     fg="white",
     bg="blue",
@@ -345,7 +349,7 @@ scrape_button.pack(side=tk.LEFT, padx=10)
 scrape_button1 = tk.Button(
     button_frame,
     text="Cancel Browser",
-    command= close_window,
+    command=close_window,
     font=("Arial", 12, "bold"),
     fg="white",
     bg="blue",
