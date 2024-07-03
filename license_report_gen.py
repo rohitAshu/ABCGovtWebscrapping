@@ -344,7 +344,7 @@ scrape_button = tk.Button(
 scrape_button.pack(side=tk.LEFT, padx=10)
 scrape_button1 = tk.Button(
     button_frame,
-    text="Cancel Browser",
+    text=APP_BUTTON_NAME1,
     command= close_window,
     font=("Arial", 12, "bold"),
     fg="white",
