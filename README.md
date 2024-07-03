@@ -70,8 +70,6 @@ pip install babel
 ```bash
 pyinstaller --onefile --hidden-import=babel.numbers --hidden-import=babel.localtime --icon=ReportIcon.ico  --windowed license_report_gen.py   
 ```
-# Modify the spec file to include 'babel.numbers' as a hidden import
-
 
 # Build the executable using the spec file
 ```bash
