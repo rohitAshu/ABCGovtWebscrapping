@@ -32,7 +32,7 @@ HEADLESS = True
 MAX_THREAD_COUNT = 10
 # FILE constants
 FILE_TYPE= 'csv' # csv or xlsx
-FILE_NAME = "ABCGovtWebscrapping"
+FILE_NAME = "ABCLicensingReport"
 
 
 def pyppeteerBrowserInit(loop):
@@ -222,7 +222,10 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     initialdir=os.getcwd(), title="Select Folder to Save Data"
                 )
                 if save_folder:
-                    file_name = save_data_to_file(final_json, save_folder,FILE_NAME, FILE_TYPE)
+                    start_date_str = start_date_entry.get_date().strftime("%B %d, %Y")
+                    enend_date_str = end_date_entry.get_date().strftime("%B %d, %Y")
+                    FileName = f"{FILE_NAME}_{start_date_str}_{enend_date_str}"
+                    file_name = save_data_to_file(final_json, save_folder,FileName, FILE_TYPE)
                     CTkMessagebox(
                         message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {file_name} ",
                         icon="check",
