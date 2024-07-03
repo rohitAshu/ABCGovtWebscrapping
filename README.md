@@ -66,8 +66,7 @@ python3 license_report_gen.py
 pip install babel
 ```
 
-# Generates the spec file
-#### Optional Step:#### Already completed....
+# Generates the exe file
 ```bash
 pyinstaller --onefile --hidden-import=babel.numbers --hidden-import=babel.localtime --icon=ReportIcon.ico  --windowed license_report_gen.py   
 ```
