@@ -1,0 +1,6 @@
+openpyxl==3.1.5
+numpy==2.0.0
+CTkMessagebox==2.7
+black==24.4.2
+pyppeteer==2.0.0
+tkcalendar==1.6.1
