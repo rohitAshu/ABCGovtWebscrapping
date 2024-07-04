@@ -78,7 +78,6 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
     combined_headers = []
     page = await browser.newPage()
     try:
-        print(f"Opening page from URL: {PAGE_URL}")
         start_date = datetime.strptime(start_date, "%B %d, %Y")
         end_date = datetime.strptime(end_date, "%B %d, %Y")
         while start_date <= end_date:
@@ -222,8 +221,10 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     initialdir=os.getcwd(), title="Select Folder to Save Data"
                 )
                 if save_folder:
-                    start_date_str = start_date_entry.get_date().strftime("%B %d, %Y")
-                    enend_date_str = end_date_entry.get_date().strftime("%B %d, %Y")
+                    # start_date_str = start_date_entry.get_date().strftime("%B %d, %Y")
+                    start_date_str = start_date_entry.get_date().strftime("%Y-%B-%d")
+                    enend_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
+
                     FileName = f"{FILE_NAME}_{start_date_str}_{enend_date_str}"
                     file_name = save_data_to_file(final_json, save_folder,FileName, FILE_TYPE)
                     CTkMessagebox(
