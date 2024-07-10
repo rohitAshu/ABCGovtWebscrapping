@@ -24,6 +24,17 @@ import json
 from CTkMessagebox import CTkMessagebox
 
 
+def delete_file(file_path):
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Deleted file: {file_path}")
+        else:
+            print(f"File does not exist: {file_path}")
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+
+
 def print_the_output_statement(output, message):
     """
     Print a message to both a tkinter Text widget and to standard output (console).
@@ -141,13 +152,13 @@ except NotImplementedError as e:
     print(e)
 
 
-def move_and_rename_file(source_file, file_name, download_date):
+def move_and_rename_file(source_file, file_name, download_date, temp_folder):
     try:
         # Check if the source file exists
         if not os.path.exists(source_file):
             print(f"Error: File '{source_file}' not found.")
             return False
-        new_filename = f"Daily_Report/{file_name}_generate_report_{download_date}.csv"
+        new_filename = f"{temp_folder}/{file_name}_generate_report_{download_date}.csv"
         print('new_filename', new_filename)
         current_directory = os.getcwd()
         print('current_directory', current_directory)
@@ -176,7 +187,6 @@ def list_files_in_directory(directory_path):
             file_path = os.path.join(directory_path, file)
             if os.path.isfile(file_path):
                 file_paths.append(file_path)
-
         return file_paths
     except FileNotFoundError:
         print(f"Directory '{directory_path}' not found.")
@@ -192,13 +202,14 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
     print(out_put_file)
     combined_data = pd.DataFrame()  # Initialize an empty DataFrame
     try:
-        for file_path in file_paths:
-            if not os.path.isfile(file_path):
-                raise FileNotFoundError(f"File not found: '{file_path}'")
-        for file_path in file_paths:
-            df = pd.read_csv(file_path, encoding='utf-8-sig')  # Read each CSV file
+        for file_to_delete in file_paths:
+            if not os.path.isfile(file_to_delete):
+                raise FileNotFoundError(f"File not found: '{file_to_delete}'")
+        for file_to_delete in file_paths:
+            df = pd.read_csv(file_to_delete, encoding='utf-8-sig')  # Read each CSV file
             # Concatenate data to combined_data DataFrame
             combined_data = pd.concat([combined_data, df], ignore_index=True)
+            delete_file(file_to_delete)
         combined_data.to_csv(out_put_file, index=False, encoding='utf-8')
         print(f"Merged {len(file_paths)} CSV files into '{out_put_file}'")
     except FileNotFoundError as e:

@@ -13,6 +13,7 @@ from pyppeteer import launch
 from pyppeteer.errors import TimeoutError as PyppeteerTimeoutError
 from tkcalendar import DateEntry
 
+
 from utils import (
     print_the_output_statement,
     find_chrome_executable,
@@ -26,32 +27,51 @@ APP_BUTTON_NAME = "Generate Report"
 APP_BUTTON_NAME1 = "Close Window"
 PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"
 HEADLESS = True
+# Threading constants
 MAX_THREAD_COUNT = 10
 # FILE constants
 FILE_TYPE = 'csv'  # csv or xlsx
 FILE_NAME = "ABCLicensingReport"
+FILE_TEMP_FOLDER = "temp"
 
-monitor = get_monitors()[0]
-width = monitor.width
-height = monitor.height
+# Display Monitor CConfiguration
+width = get_monitors()[0].width
+height = get_monitors()[0].height
+
 
 def pyppeteerBrowserInit(loop):
     executable_path = find_chrome_executable()
     print("executable_path", executable_path)
     asyncio.set_event_loop(loop)
-  
-    
+
     try:
         browser = loop.run_until_complete(
             launch(
-                {
-                    "headless": HEADLESS,
-                    "executablePath": executable_path,
-                    "defaultViewport": None,
-                }
+                executablePath=executable_path,
+                headless=HEADLESS,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-infobars',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu',
+                    '--window-size=1920x1080',
+                    '--start-maximized',
+                    '--disable-notifications',
+                    '--disable-popup-blocking',
+                    '--ignore-certificate-errors',
+                    '--allow-file-access',
+                    '--allow-running-insecure-content',
+                    '--disable-web-security',
+                    '--user-data-dir=/tmp/pyppeteer',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-background-networking'
+                ]
             )
         )
-        
         return browser
     except Exception as e:
         print(f"Error initializing browser: {e}")
@@ -80,6 +100,10 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
     print_the_output_statement(output, "Please wait for the Report generation.")
     error_response = ''
     page = await browser.newPage()
+    download_path = get_default_download_path()
+    await page._client.send('Page.setDownloadBehavior',
+                            {'behavior': 'allow', 'downloadPath': download_path})
+    await page.setViewport({'width': width, 'height': height})
     await page.setViewport({'width': width, 'height': height})
     try:
         start_date = datetime.strptime(start_date, "%B %d, %Y")
@@ -93,6 +117,7 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
             load_page = await page_load(page, formatted_date)
             if load_page:
                 print(f"opened  successfully")
+
                 await asyncio.sleep(5)
                 viewport_height = await page.evaluate("window.innerHeight")
                 print("viewport_height element is found")
@@ -141,12 +166,12 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         await download_csv_btn[0].click()
                         print("Clicked on download_csv_btn Successfully !!")
                         await asyncio.sleep(4)
-                        print('Donwloading')
+                        print('Downloading')
                         download_path = get_default_download_path()
                         print('download_path', download_path)
                         source_file = f"{download_path}/CA-ABC-LicenseReport.csv"
                         print('source_file', source_file)
-                        rename = move_and_rename_file(source_file, FILE_NAME, download_date)
+                        rename = move_and_rename_file(source_file, FILE_NAME, download_date, FILE_TEMP_FOLDER)
                         print('rename', rename)
                     else:
                         error_response = True
@@ -203,11 +228,10 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     enend_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
                     FileName = f"{FILE_NAME}_{start_date_str}_{enend_date_str}"
                     print('FileName', FileName)
-                    print('directory_path', f"{os.getcwd()}/Daily_Report")
-                    file_paths = list_files_in_directory(f"{os.getcwd()}/Daily_Report")
+                    print('directory_path', f"{os.getcwd()}/{FILE_TEMP_FOLDER}")
+                    file_paths = list_files_in_directory(f"{os.getcwd()}/{FILE_TEMP_FOLDER}")
                     merge_the_file = merge_csv_files(file_paths, save_folder, FileName, FILE_TYPE)
                     print('merge_the_file', merge_the_file)
-                    shutil.rmtree(f"{os.getcwd()}/Daily_Report")
                     CTkMessagebox(
                         message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {merge_the_file} ",
                         icon="check",
