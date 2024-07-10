@@ -23,7 +23,6 @@ from utils import (
     merge_csv_files,
     page_load,
     print_the_output_statement,
-    # find_chrome_executable,
 )
 from webdriver import pyppeteerBrowserInit
 
@@ -50,148 +49,240 @@ height = get_monitors()[0].height  # Height of the primary monitor
 
 
 async def scrape_and_save_table_data(browser, start_date, end_date, output, start_time):
-        output.delete("1.0", tk.END)
-        print_the_output_statement(output, "Data Processing Started...")
-        print_the_output_statement(output, "Please wait for the Report generation.")
-        error_response = ''
-        download_path = get_default_download_path()
-        print('download_path' , download_path)
-        source_file = f"{download_path}/CA-ABC-LicenseReport.csv"
-        print('source_file', source_file)
-        page = await browser.newPage()
-        delete_file(source_file) if os.path.exists(source_file) else ''
-        os.makedirs(download_path, exist_ok=True)
-        await page._client.send('Page.setDownloadBehavior',
+    """
+    Scrape data from a web page for a range of dates, save it to a CSV file, convert to JSON,
+    and handle UI interactions using Tkinter message boxes.
+
+    Parameters:
+    - browser (pyppeteer.browser.Browser): A Pyppeteer browser instance.
+    - start_date (str): Start date in "%B %d, %Y" format.
+    - end_date (str): End date in "%B %d, %Y" format.
+    - output (tk.Text): Tkinter Text widget to display output messages.
+    - start_time (float): Start time of the execution.
+
+    Returns:
+    - None
+
+    Raises:
+    - PyppeteerTimeoutError: If there's a timeout while interacting with Pyppeteer.
+    - pyppeteer.errors.NetworkError: If a network error occurs.
+    - Exception: For any other unexpected errors.
+
+    """
+    output.delete("1.0", tk.END)
+    print_the_output_statement(output, "Data Processing Started...")
+    print_the_output_statement(output, "Please wait for the Report generation.")
+    
+    error_response = ''
+    download_path = get_default_download_path()
+    print('download_path' , download_path)
+    
+    # Define the path for downloading the CSV file
+    source_file = f"{download_path}/CA-ABC-LicenseReport.csv"
+    print('source_file', source_file)
+    
+    # Create a new page in the browser context
+    page = await browser.newPage()
+    
+    # Delete the existing CSV file if it exists
+    delete_file(source_file) if os.path.exists(source_file) else ''
+    
+    # Ensure the download directory exists
+    os.makedirs(download_path, exist_ok=True)
+    
+    # Configure browser to allow downloads to specified path
+    await page._client.send('Page.setDownloadBehavior',
                             {'behavior': 'allow', 'downloadPath': download_path})
-        await page.setViewport({'width': width, 'height': height})
-        try:
-            start_date = datetime.strptime(start_date, "%B %d, %Y")
-            end_date = datetime.strptime(end_date, "%B %d, %Y")
-            while start_date <= end_date:
-             formatted_date = start_date.strftime(
-                "%m/%d/%Y"
-            )
-             print(f'Scrapping the data {formatted_date}')
-             load_page = await page_load(page, formatted_date, PAGE_URL)
-             if load_page:
-                 print(f"opened  successfully")
-                 await asyncio.sleep(5)
-                 viewport_height = await page.evaluate("window.innerHeight")
-                 print("viewport_height element is found")
-                 scroll_distance = int(viewport_height * 0.3)
-                 print(f"scroll_distance is  {scroll_distance}")
-                 await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                 print('short Scrolling......................................')
-                 check_script = """
-                        () => {
-                            const elements = document.querySelectorAll('.et_pb_code_inner');
-                            for (let element of elements) {
-                                if (element.textContent.trim() === 'There were no new applications taken on the selected report date.') {
-                                    return true;
-                                }
+    
+    # Set viewport dimensions for the page
+    await page.setViewport({'width': width, 'height': height})
+    
+    try:
+        # Convert start_date and end_date strings to datetime objects
+        start_date = datetime.strptime(start_date, "%B %d, %Y")
+        end_date = datetime.strptime(end_date, "%B %d, %Y")
+        
+        # Iterate through each date in the specified range
+        while start_date <= end_date:
+            formatted_date = start_date.strftime("%m/%d/%Y")
+            print(f'Scrapping the data {formatted_date}')
+            
+            # Load the page for the current formatted date
+            load_page = await page_load(page, formatted_date, PAGE_URL)
+            
+            if load_page:
+                print(f"Page loaded successfully")
+                
+                # Wait for page elements to settle
+                await asyncio.sleep(5)
+                
+                # Determine viewport height for scrolling
+                viewport_height = await page.evaluate("window.innerHeight")
+                print("Viewport height obtained")
+                
+                # Scroll down to load additional content
+                scroll_distance = int(viewport_height * 0.3)
+                await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
+                print('Short scrolling...')
+                
+                # Check if specific element indicating no data is present
+                check_script = """
+                    () => {
+                        const elements = document.querySelectorAll('.et_pb_code_inner');
+                        for (let element of elements) {
+                            if (element.textContent.trim() === 'There were no new applications taken on the selected report date.') {
+                                return true;
                             }
-                            return false;
                         }
-                    """
-                 element_exists = await page.evaluate(check_script)
-                 if element_exists:
+                        return false;
+                    }
+                """
+                
+                element_exists = await page.evaluate(check_script)
+                
+                if element_exists:
+                    # Handle case where no data is found for the date
                     print_the_output_statement(
                         output,
                         f"There were no new applications taken on the selected report date. {start_date}:",
                     )
                     error_response = True
-                 else:
-                   table_exists = await page.evaluate(
+                else:
+                    # Check if the table element exists on the page
+                    table_exists = await page.evaluate(
                         'document.querySelector("table#license_report tbody tr") !== null')
-                   if table_exists:
-                       error_response = False
-                       scroll_distance = int(viewport_height * 3.9)
-                       print(f"Scroll Distanced {scroll_distance}")
-                       await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                       print("Long Scrolling....................")
-                       await page.waitForXPath('//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
-                       download_csv_btn = await page.xpath(
+                    
+                    if table_exists:
+                        # Perform long scrolling to load more data
+                        scroll_distance = int(viewport_height * 3.9)
+                        await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
+                        print("Long scrolling...")
+                        
+                        # Wait for the CSV download button to appear
+                        await page.waitForXPath('//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
+                        download_csv_btn = await page.xpath(
                             '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
-                       print(f'download_csv_btn element is found {download_csv_btn}')
-                       
-                       await download_csv_btn[0].click()
-                       print("Clicked on download_csv_btn Successfully !!")
-                       print('Downloading...............')
-                       await asyncio.sleep(7)
-                       print(f'Downloaded the File to the {source_file}')
-                       success, Response = convert_csv_to_json_and_add_report_date(source_file,FILE_NAME,FILE_TEMP_FOLDER,start_date )
-                       if success:
-                           delete_file(source_file) if os.path.exists(source_file) else ''
-                       print_the_output_statement(
-                            output, f"Data found for {formatted_date}."
-                        )
-                   else:
-                       error_response = True
-                       print_the_output_statement(
+                        
+                        print(f'Download button found: {download_csv_btn}')
+                        
+                        # Click on the download button to download CSV
+                        await download_csv_btn[0].click()
+                        print("Clicked on download button successfully!")
+                        print('Downloading...')
+                        
+                        # Wait briefly for the file to download
+                        await asyncio.sleep(7)
+                        print(f'File downloaded to {source_file}')
+                        
+                        # Convert downloaded CSV to JSON and add report date
+                        success, Response = convert_csv_to_json_and_add_report_date(source_file, FILE_NAME, FILE_TEMP_FOLDER, start_date)
+                        
+                        if success:
+                            delete_file(source_file) if os.path.exists(source_file) else ''
+                        
+                        print_the_output_statement(output, f"Data found for {formatted_date}.")
+                    
+                    else:
+                        # Handle case where table does not exist for the date
+                        error_response = True
+                        print_the_output_statement(
                             output,
                             f"There were no new applications taken on the selected report date. {start_date}:",
                         )
                     
-             start_date += timedelta(days=1)
-        except PyppeteerTimeoutError as timeout_error:
+            start_date += timedelta(days=1)
+    
+    except PyppeteerTimeoutError as timeout_error:
+        # Handle Pyppeteer timeout error
+        CTkMessagebox(
+            title="Error",
+            message="Internal Error Occurred while running application. Please Try Again!!",
+            icon="cancel",
+        )
+    
+    except pyppeteer.errors.NetworkError:
+        # Handle Pyppeteer network error
+        CTkMessagebox(
+            title="Error",
+            message="Internal Error Occurred while running application. Please Try Again!!",
+            icon="cancel",
+        )
+    
+    except Exception as e:
+        # Handle any other unexpected exceptions
+        CTkMessagebox(
+            title="Error",
+            message="Internal Error Occurred while running application. Please Try Again!!",
+            icon="cancel",
+        )
+    
+    finally:
+        # Close the browser session
+        await browser.close()
+        
+        # Calculate total execution time
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        # Display appropriate message based on error_response status
+        if error_response:
             CTkMessagebox(
-                title="Error",
-                message="Internal Error Occurred while running application. Please Try Again!!",
-                icon="cancel",
-            )
-        except pyppeteer.errors.NetworkError:
-            CTkMessagebox(
-                title="Error",
-                message="Internal Error Occurred while running application. Please Try Again!!",
-                icon="cancel",
-            )
-        except Exception as e:
-            CTkMessagebox(
-                title="Error",
-                message="Internal Error Occurred while running application. Please Try Again!!",
-                icon="cancel",
-            )
-        finally:
-         await browser.close()
-         end_time = time.time()
-         total_time = end_time - start_time
-         if error_response:
-             CTkMessagebox(
                 title="Error",
                 message=f"No Report is found on the dated {start_date} & {end_date}",
                 icon="cancel",
             )
-         else:
-           msg = CTkMessagebox( title="Info", message="Report Successfully Generated.\n Click ok to Download", option_1="Cancel", option_2="Ok")
-           if msg.get() == "Ok":
-               start_date_str = start_date_entry.get_date().strftime("%Y-%B-%d")
-               enend_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
-               FileName = f"{FILE_NAME}_{start_date_str}_{enend_date_str}"
-               save_folder = filedialog.askdirectory(
-                    initialdir=os.getcwd(), title="Select Folder to Save Data"
+        
+        else:
+            # Prompt user to download the generated report
+            msg = CTkMessagebox(
+                title="Info",
+                message="Report Successfully Generated.\n Click OK to Download",
+                option_1="Cancel",
+                option_2="Ok"
+            )
+            
+            if msg.get() == "Ok":
+                # Construct file name based on start and end dates
+                start_date_str = start_date_entry.get_date().strftime("%Y-%B-%d")
+                end_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
+                FileName = f"{FILE_NAME}_{start_date_str}_{end_date_str}"
+                
+                # Prompt user to select a folder for saving the data
+                save_folder = filedialog.askdirectory(
+                    initialdir=os.getcwd(),
+                    title="Select Folder to Save Data"
                 )
-               if save_folder:
-                # print('FileName', FileName)
-                file_paths = list_files_in_directory(Response)
-                # print('file_paths', file_paths)
-                merge_the_file = merge_csv_files(file_paths, save_folder, FileName, FILE_TYPE)
-                print('merge_the_file', merge_the_file)
-                directory_to_delete = fr'{Response}'
-                delete_directory(directory_to_delete)
-                CTkMessagebox(
-                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {merge_the_file} ",
+                
+                if save_folder:
+                    # Retrieve list of file paths in the response directory
+                    file_paths = list_files_in_directory(Response)
+                    
+                    # Merge the files into a single CSV file
+                    merge_the_file = merge_csv_files(file_paths, save_folder, FileName, FILE_TYPE)
+                    print('merge_the_file', merge_the_file)
+                    
+                    # Delete the response directory
+                    directory_to_delete = fr'{Response}'
+                    delete_directory(directory_to_delete)
+                    
+                    # Display success message with file location
+                    CTkMessagebox(
+                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and saved the file to  {merge_the_file} ",
                         icon="check",
                         option_1="Thanks",
                     )
-           else:
-               CTkMessagebox(
-                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} but you have cancelled the downlaod ",
+                
+                else:
+                    # Display message if user cancels download
+                    CTkMessagebox(
+                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} but you have cancelled the download ",
                         icon="check",
                         option_1="Thanks",
                     )
            
+        # Display total execution time in the output window
         print_the_output_statement(output, f"Total execution time: {total_time:.2f} seconds")
-   
+
 
 def run_scraping_thread(loop, browser, start_date_str, end_date_str, output_text, start_time):
     """

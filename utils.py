@@ -4,9 +4,7 @@ import json
 import os
 import platform
 import shutil
-from datetime import datetime
 import tkinter as tk
-from pyppeteer import launch
 
 def print_the_output_statement(output, message):
     """
@@ -120,9 +118,6 @@ def get_default_download_path():
     else:
         raise NotImplementedError(f"Unsupported platform: {system}")
     
-
-import os
-
 def delete_file(file_path):
     """
     Deletes a file if it exists at the specified path.
@@ -166,6 +161,20 @@ def csv_to_json(csv_file, currendate , json_file):
 
 
 def generate_json_data(main_json):
+    """
+    Generate structured JSON data from a main JSON dataset.
+
+    Parameters:
+    - main_json (str): JSON formatted string representing the main dataset.
+
+    Returns:
+    - str: JSON formatted string representing the parsed and structured data.
+
+    Notes:
+    - Parses the main JSON data to extract and structure information such as DBA, Applicant, Street,
+      City, State, and ZipCode.
+    - Assumes the input JSON data contains entries with a field 'Primary Owner and Premises Addr.'.
+    """
     data1 = json.loads(main_json)
     parsed_data = []
 
@@ -219,6 +228,8 @@ def generate_json_data(main_json):
 
     json_data2 = json.dumps(parsed_data, indent=4)
     return json_data2
+
+
 def merge_json(json_data1, json_data2):
     """
     Merge two JSON data sets into a single JSON array.
@@ -264,6 +275,24 @@ def merge_json(json_data1, json_data2):
     merged_json = json.dumps(merged_data, indent=4)
     return merged_json
 def convert_csv_to_json_and_add_report_date(meincsvfile, filenmae, tempfolder,currendate):
+    """
+    Convert a CSV file to JSON format, add a 'Report Date' field, and save both CSV and JSON files.
+
+    Parameters:
+    - meincsvfile (str): Path to the input CSV file.
+    - filename (str): Base name for the output CSV and JSON files.
+    - tempfolder (str): Path to the temporary folder where files will be saved.
+    - current_date (datetime.datetime): Current date used for adding 'Report Date'.
+
+    Returns:
+    - tuple: A tuple containing:
+        - bool: True if conversion and saving were successful, False otherwise.
+        - str: Path to the directory where the generated files are saved.
+
+    Notes:
+    - The function creates a new CSV file with added 'Report Date' column.
+    - The function also generates a corresponding JSON file with the converted data.
+    """
     try:
         if not os.path.exists(meincsvfile):
             print(f"Error: File '{meincsvfile}' not found.")
@@ -304,7 +333,22 @@ def convert_csv_to_json_and_add_report_date(meincsvfile, filenmae, tempfolder,cu
     except PermissionError:
         print(f"Error: Permission denied moving '{meincsvfile}'.")
 
+        
+
 def list_files_in_directory(directory_path):
+    """
+    List all files in a directory.
+
+    Parameters:
+    - directory_path (str): Path to the directory.
+
+    Returns:
+    - list: List of file paths in the directory.
+
+    Notes:
+    - If the directory is not found, an empty list is returned.
+    - If permission is denied to access the directory, an empty list is returned.
+    """
     file_paths = []
     try:
         # List all files in the directory
@@ -334,6 +378,10 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
 
     Returns:
     - str: Path to the merged CSV file.
+
+    Raises:
+    - FileNotFoundError: If one of the input CSV files is not found.
+    - PermissionError: If permission is denied accessing or writing to output files.
     """
     os.makedirs(save_folder, exist_ok=True)
     output_file = os.path.join(save_folder, f"{file_name}.{file_type}")
@@ -355,8 +403,6 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
                 for row in reader:
                     combined_data.append(row)  # Append rows from each file
 
-            # delete_file(file_path)  # Delete the file after reading
-            # delete_file(file_path) if os.path.exists(file_path) else ''
         with open(output_file, 'w', newline='', encoding='utf-8') as outfile:
             writer = csv.writer(outfile)
             writer.writerows(combined_data)
@@ -371,18 +417,29 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
 
     return output_file
 
+
+
+
+
 def delete_directory(directory_path):
     """
     Delete a directory and all its contents.
 
     Parameters:
-    - directory_path (str): Path to the directory to delete.
+        directory_path (str): Path to the directory to delete.
 
     Returns:
-    - None
+        None
+
+    Raises:
+        OSError: If an error occurs while attempting to delete the directory.
+
+    Notes:
+        This function recursively deletes all files and subdirectories within the specified directory.
+        If the directory does not exist, no action is taken.
     """
     try:
-        shutil.rmtree(directory_path)
+        shutil.rmtree(directory_path)  # Recursively delete the directory
         print(f"Deleted directory and contents: {directory_path}")
     except OSError as e:
-        print(f"Error: {directory_path} - {e.strerror}")
+        print(f"Error: {directory_path} - {e.strerror}")  # Print error message if deletion fails
