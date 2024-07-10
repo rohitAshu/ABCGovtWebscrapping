@@ -1,25 +1,22 @@
 import asyncio
 import os
+import shutil
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
-from tkinter import filedialog
-from tkinter import ttk
 from threading import Thread
-
+from tkinter import ttk, filedialog
+from screeninfo import get_monitors
+import pyppeteer
 from CTkMessagebox import CTkMessagebox
 from pyppeteer import launch
-import pyppeteer
 from pyppeteer.errors import TimeoutError as PyppeteerTimeoutError
 from tkcalendar import DateEntry
 
 from utils import (
-    convert_array_to_json,
-    generate_json_data,
-    merge_json,
     print_the_output_statement,
     find_chrome_executable,
-    save_data_to_file,
+    get_default_download_path, move_and_rename_file, list_files_in_directory, merge_csv_files,
 )
 
 # Application constants
@@ -31,14 +28,19 @@ PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/
 HEADLESS = True
 MAX_THREAD_COUNT = 10
 # FILE constants
-FILE_TYPE= 'csv' # csv or xlsx
+FILE_TYPE = 'csv'  # csv or xlsx
 FILE_NAME = "ABCLicensingReport"
 
+monitor = get_monitors()[0]
+width = monitor.width
+height = monitor.height
 
 def pyppeteerBrowserInit(loop):
     executable_path = find_chrome_executable()
     print("executable_path", executable_path)
     asyncio.set_event_loop(loop)
+  
+    
     try:
         browser = loop.run_until_complete(
             launch(
@@ -49,6 +51,7 @@ def pyppeteerBrowserInit(loop):
                 }
             )
         )
+        
         return browser
     except Exception as e:
         print(f"Error initializing browser: {e}")
@@ -57,6 +60,7 @@ def pyppeteerBrowserInit(loop):
 
 async def page_load(page, date):
     pageurl = f"{PAGE_URL}/?RPTTYPE=2&RPTDATE={date}"
+    await page.setViewport({'width': width, 'height': height})
     print(f"Opening page from URL: {pageurl}")
     response = await page.goto(pageurl, waitUntil="domcontentloaded")
     if response.status == 404:
@@ -74,26 +78,28 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
     output.delete("1.0", tk.END)
     print_the_output_statement(output, "Data Processing Started...")
     print_the_output_statement(output, "Please wait for the Report generation.")
-    combined_data = []
-    combined_headers = []
+    error_response = ''
     page = await browser.newPage()
+    await page.setViewport({'width': width, 'height': height})
     try:
         start_date = datetime.strptime(start_date, "%B %d, %Y")
         end_date = datetime.strptime(end_date, "%B %d, %Y")
         while start_date <= end_date:
             formatted_date = start_date.strftime(
                 "%m/%d/%Y"
-            ) 
+            )
+            download_date = start_date.strftime('%d_%m_%Y')
             print(formatted_date)
             load_page = await page_load(page, formatted_date)
             if load_page:
                 print(f"opened  successfully")
-                await asyncio.sleep(5)  
+                await asyncio.sleep(5)
                 viewport_height = await page.evaluate("window.innerHeight")
                 print("viewport_height element is found")
                 scroll_distance = int(viewport_height * 0.3)
                 print(f"scroll_distance is  {scroll_distance}")
                 await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
+                print('short Scrolling......................................')
                 print(f"scroll_distance progress")
                 check_script = """
                         () => {
@@ -112,74 +118,52 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         output,
                         f"There were no new applications taken on the selected report date. {start_date}:",
                     )
+                    error_response = True
                 else:
-                    scroll_distance = int(viewport_height * 1.1)
-                    print(f"Scroll Distanced {scroll_distance}")
-                    await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                    print("Scrolling....................")
-                    await page.waitForSelector('select[name="license_report_length"]')
-                    print("license_report_length element is found")
-                    await page.select(
-                        'select[name="license_report_length"]', "100"
-                    ) 
-                    print("Option selected successfully.")
-                    await asyncio.sleep(5)
-                    headers = await page.evaluate(
-                        """() => {
-                        const table = document.querySelector('.display.table.table-striped.dataTable.no-footer');
-                        const headerRow = table.querySelector('thead tr');
-                        return Array.from(headerRow.querySelectorAll('th')).map(header => header.innerText.trim());
-                    }"""
-                    )
-                    if not combined_headers:
-                        combined_headers = headers + ["Report Date"]
-                    while True:
-                        table_data = await page.evaluate(
-                            """() => {
-                            const table = document.querySelector('.display.table.table-striped.dataTable.no-footer');
-                            const rows = Array.from(table.querySelectorAll('tbody tr'));
-                            return rows.map(row => {
-                                const columns = Array.from(row.querySelectorAll('td, th'));
-                                return columns.map(column => column.innerText.trim());
-                            });
-                        }"""
+                    table_exists = await page.evaluate(
+                        'document.querySelector("table#license_report tbody tr") !== null')
+                    if table_exists:
+                        error_response = False
+                        print(f"Table data found for {formatted_date}")
+                        print_the_output_statement(
+                            output, f"Data found for {formatted_date}."
                         )
-                        for row in table_data:
-                            row.append(start_date.strftime("%B %d, %Y"))
-                            combined_data.append(row)
-                        next_button = await page.querySelector("#license_report_next")
-                        print("next_button element is found")
-                        if not next_button:
-                            print_the_output_statement(
-                                output, f"No more data found for {formatted_date}"
-                            )
-                            break  
-                        is_disabled = await page.evaluate(
-                            '(nextButton) => nextButton.classList.contains("disabled")',
-                            next_button,
+                        scroll_distance = int(viewport_height * 3.9)
+                        print(f"Scroll Distanced {scroll_distance}")
+                        await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
+                        print("Long Scrolling....................")
+                        # # Download Button
+                        await page.waitForXPath(
+                            '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
+                        download_csv_btn = await page.xpath(
+                            '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
+                        print(f'download_csv_btn element is found {download_csv_btn}')
+                        await download_csv_btn[0].click()
+                        print("Clicked on download_csv_btn Successfully !!")
+                        await asyncio.sleep(4)
+                        print('Donwloading')
+                        download_path = get_default_download_path()
+                        print('download_path', download_path)
+                        source_file = f"{download_path}/CA-ABC-LicenseReport.csv"
+                        print('source_file', source_file)
+                        rename = move_and_rename_file(source_file, FILE_NAME, download_date)
+                        print('rename', rename)
+                    else:
+                        error_response = True
+                        print(f"No table data found for {formatted_date}")
+                        print_the_output_statement(
+                            output,
+                            f"There were no new applications taken on the selected report date. {start_date}:",
                         )
-                        print("is_disabled element is found")
-                        if is_disabled:
-                            break
-                        await next_button.click()
-                        print("next_button is clicked")
-                        print(f"Clicked on Next button for next page")
-                        await page.waitForSelector(
-                            "#license_report tbody tr", timeout=30000
-                        )
-                        await asyncio.sleep(5) 
-                        print("license_report tbody tr element is found")
-                    print_the_output_statement(
-                        output, f"Data found for {formatted_date}."
-                    )
-            start_date += timedelta(days=1)  
+
+            start_date += timedelta(days=1)
     except PyppeteerTimeoutError as timeout_error:
         CTkMessagebox(
             title="Error",
             message="Internal Error Occurred while running application. Please Try Again!!",
             icon="cancel",
         )
-    except pyppeteer.errors.NetworkError:  
+    except pyppeteer.errors.NetworkError:
         CTkMessagebox(
             title="Error",
             message="Internal Error Occurred while running application. Please Try Again!!",
@@ -195,15 +179,8 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
         await browser.close()
         end_time = time.time()
         total_time = end_time - start_time
-        print("converting array to json")
-        json_data = convert_array_to_json(combined_headers, combined_data)
-        print(
-            "Regenerating the Second json on the based of the Primary Owner and Premises Addr."
-        )
-        json_data2 = generate_json_data(json_data)
-        print("merging the two json and convert the combined json data ")
-        final_json = merge_json(json_data, json_data2)
-        if len(combined_data) == 0 and len(combined_headers) == 0:
+        print('error_response', error_response)
+        if error_response:
             CTkMessagebox(
                 title="Error",
                 message=f"No Report is found on the dated {start_date} & {end_date}",
@@ -225,9 +202,14 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                     start_date_str = start_date_entry.get_date().strftime("%Y-%B-%d")
                     enend_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
                     FileName = f"{FILE_NAME}_{start_date_str}_{enend_date_str}"
-                    file_name = save_data_to_file(final_json, save_folder,FileName, FILE_TYPE)
+                    print('FileName', FileName)
+                    print('directory_path', f"{os.getcwd()}/Daily_Report")
+                    file_paths = list_files_in_directory(f"{os.getcwd()}/Daily_Report")
+                    merge_the_file = merge_csv_files(file_paths, save_folder, FileName, FILE_TYPE)
+                    print('merge_the_file', merge_the_file)
+                    shutil.rmtree(f"{os.getcwd()}/Daily_Report")
                     CTkMessagebox(
-                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {file_name} ",
+                        message=f"Generated Report Successfully on the dated {start_date} & {end_date} and save the file to  {merge_the_file} ",
                         icon="check",
                         option_1="Thanks",
                     )
@@ -262,10 +244,10 @@ def generate_daily_report():
     print("end_date", end_date)
     print("date vaidation Start")
     if (
-        start_date > current_date
-        or end_date > current_date
-        or start_date == current_date
-        or end_date == current_date
+            start_date > current_date
+            or end_date > current_date
+            or start_date == current_date
+            or end_date == current_date
     ):
         print("Please select a date that is 2 or more days past.")
         CTkMessagebox(
@@ -334,7 +316,7 @@ button_frame.pack(pady=20)
 scrape_button = tk.Button(
     button_frame,
     text=APP_BUTTON_NAME,
-    command= generate_daily_report,
+    command=generate_daily_report,
     font=("Arial", 12, "bold"),
     fg="white",
     bg="blue",
@@ -348,7 +330,7 @@ scrape_button.pack(side=tk.LEFT, padx=10)
 scrape_button1 = tk.Button(
     button_frame,
     text=APP_BUTTON_NAME1,
-    command= close_window,
+    command=close_window,
     font=("Arial", 12, "bold"),
     fg="white",
     bg="blue",
