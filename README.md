@@ -14,16 +14,16 @@ git clone https://github.com/exoticaitsolutions/ABCGovtWebscrapping.git
 ```
 # **_Windows:_**
 ```
-py -m venv myworld
+py -m venv .venv
 ```
 **Unix/MacOS:**
 ```
- python3 -m venv myworld
+ python3 -m venv .venv
 ```
 Then you have to activate the environment, by typing this command:
 Windows:
 ```
-myworld\Scripts\activate.bat
+.venv\Scripts\activate.bat
 ```
 Unix/MacOS:
 ```
@@ -42,10 +42,17 @@ python.exe -m pip install -r requirements.txt
 ```
 pip install -r requirements.txt
 ```
-# Individual Dependencies
-***pyppeteer***
+
+### Update the Pip using this Command
+
+**Windows:**
+
+```bash
+python.exe -m pip install --upgrade pip
 ```
-pip install pyppeteer
+**Unix/MacOS/Linux:**
+```
+python.exe -m pip install --upgrade pip
 ```
 
 # Run Project

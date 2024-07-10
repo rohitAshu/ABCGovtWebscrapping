@@ -3,5 +3,3 @@ CTkMessagebox==2.7
 black==24.4.2
 pyppeteer==2.0.0
 tkcalendar==1.6.1
-pandas~=2.2.2
-screeninfo~=0.8.1
