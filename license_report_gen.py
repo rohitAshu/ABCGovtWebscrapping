@@ -1,18 +1,17 @@
 import asyncio
 import os
-import shutil
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
 from threading import Thread
 from tkinter import ttk, filedialog
-from screeninfo import get_monitors
+
 import pyppeteer
 from CTkMessagebox import CTkMessagebox
 from pyppeteer import launch
 from pyppeteer.errors import TimeoutError as PyppeteerTimeoutError
+from screeninfo import get_monitors
 from tkcalendar import DateEntry
-
 
 from utils import (
     print_the_output_statement,
@@ -94,7 +93,6 @@ async def page_load(page, date):
 
 
 async def scrape_and_save_table_data(browser, start_date, end_date, output, start_time):
-    start_time = time.time()
     output.delete("1.0", tk.END)
     print_the_output_statement(output, "Data Processing Started...")
     print_the_output_statement(output, "Please wait for the Report generation.")
