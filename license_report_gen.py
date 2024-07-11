@@ -12,6 +12,7 @@ from screeninfo import get_monitors
 from tkcalendar import DateEntry
 from utils import (
     convert_csv_to_json_and_add_report_date,
+    delete_directory,
     delete_file,
     get_default_download_path,
     list_files_in_directory,
@@ -270,15 +271,14 @@ async def Generate_the_Report_and_Download(
                         icon="check",
                         option_1="Thanks",
                     )
-
                 else:
+                    delete_directory(rf"{Response}")
                     # Display message if user cancels download
                     CTkMessagebox(
                         message=f"Generated Report Successfully on the dated {start_date} & {end_date} but you have cancelled the download ",
                         icon="check",
                         option_1="Thanks",
                     )
-
         # Display total execution time in the output window
         print_the_output_statement(
             output, f"Total execution time: {total_time:.2f} seconds"
