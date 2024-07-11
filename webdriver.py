@@ -3,9 +3,10 @@ from pyppeteer import launch
 
 from utils import find_chrome_executable
 
+
 def pyppeteerBrowserInit(loop, headless, width, height):
     """
-    Initializes a Pyppeteer browser instance with the specified parameters.
+    initializes a Pyppeteer browser instance with the specified parameters.
 
     Args:
         loop (asyncio.AbstractEventLoop): The event loop to use for asynchronous operations.
@@ -31,26 +32,26 @@ def pyppeteerBrowserInit(loop, headless, width, height):
                 executablePath=executable_path,
                 headless=headless,
                 args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-infobars',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--disable-gpu',
-                    f'--window-size={width},{height}',
-                    '--start-maximized',
-                    '--disable-notifications',
-                    '--disable-popup-blocking',
-                    '--ignore-certificate-errors',
-                    '--allow-file-access',
-                    '--allow-running-insecure-content',
-                    '--disable-web-security',
-                    '--user-data-dir=/tmp/pyppeteer',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding',
-                    '--disable-background-networking'
-                ]
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-infobars",
+                    "--disable-dev-shm-usage",
+                    "--disable-accelerated-2d-canvas",
+                    "--disable-gpu",
+                    f"--window-size={width},{height}",
+                    "--start-maximized",
+                    "--disable-notifications",
+                    "--disable-popup-blocking",
+                    "--ignore-certificate-errors",
+                    "--allow-file-access",
+                    "--allow-running-insecure-content",
+                    "--disable-web-security",
+                    "--user-data-dir=/tmp/pyppeteer",
+                    "--disable-background-timer-throttling",
+                    "--disable-backgrounding-occluded-windows",
+                    "--disable-renderer-backgrounding",
+                    "--disable-background-networking",
+                ],
             )
         )
         return browser

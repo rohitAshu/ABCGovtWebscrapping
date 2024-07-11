@@ -1,45 +1,43 @@
 import asyncio
 import os
-import random
 import time
 import tkinter as tk
 from datetime import datetime, timedelta
 from threading import Thread
 from tkinter import ttk, filedialog
-
 import pyppeteer
 from CTkMessagebox import CTkMessagebox
-from pyppeteer import launch
 from pyppeteer.errors import TimeoutError as PyppeteerTimeoutError
 from screeninfo import get_monitors
 from tkcalendar import DateEntry
-
 from utils import (
     convert_csv_to_json_and_add_report_date,
-    delete_directory,
     delete_file,
     get_default_download_path,
     list_files_in_directory,
     merge_csv_files,
     page_load,
     print_the_output_statement,
+    Read_Csv,
 )
 from webdriver import pyppeteerBrowserInit
 
 
 # Application Settings
 APP_TITLE = "Daily License Report"  # Title of the application window
-APP_HEADING = "Welcome to the ABC Liquor Daily Report App"  # Heading text displayed in the app
+APP_HEADING = (
+    "Welcome to the ABC Liquor Daily Report App"  # Heading text displayed in the app
+)
 APP_BUTTON_NAME = "Generate Report"  # Text on the report generation button
 APP_BUTTON_NAME1 = "Close Window"  # Text on the close window button
 
-# Headless Setting 
+# Headless Setting
 HEADLESS = True  # Whether to run the app in headless mode (no GUI)
 PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/new-applications/"  # URL for licensing reports
 # Threading Settings
 MAX_THREAD_COUNT = 10  # Maximum number of threads for concurrent processing
 # Report Settings
-FILE_TYPE = 'csv'  # Type of file to generate ('csv' or 'xlsx')
+FILE_TYPE = "csv"  # Type of file to generate ('csv' or 'xlsx')
 FILE_NAME = "ABCLicensingReport"  # Base name for generated report files
 FILE_TEMP_FOLDER = "temp"  # Temporary folder for storing generated files
 
@@ -48,83 +46,81 @@ width = get_monitors()[0].width  # Width of the primary monitor
 height = get_monitors()[0].height  # Height of the primary monitor
 
 
-async def scrape_and_save_table_data(browser, start_date, end_date, output, start_time):
+async def Generate_the_Report_and_Download(
+    browser, start_date, end_date, output, start_time
+):
     """
-    Scrape data from a web page for a range of dates, save it to a CSV file, convert to JSON,
-    and handle UI interactions using Tkinter message boxes.
-
+    Generates a report by scraping data for a date range, downloading CSV files,
+    converting them to JSON, and optionally merging into a single CSV.
     Parameters:
-    - browser (pyppeteer.browser.Browser): A Pyppeteer browser instance.
-    - start_date (str): Start date in "%B %d, %Y" format.
-    - end_date (str): End date in "%B %d, %Y" format.
-    - output (tk.Text): Tkinter Text widget to display output messages.
-    - start_time (float): Start time of the execution.
-
-    Returns:
-    - None
-
+    - browser (pyppeteer.browser.Browser): Pyppeteer browser instance.
+    - start_date (str): Start date in 'Month Day, Year' format (e.g., 'January 1, 2023').
+    - end_date (str): End date in 'Month Day, Year' format (e.g., 'January 31, 2023').
+    - output (tk.Text): Tkinter Text widget for displaying status messages.
+    - start_time (float): Start time of function execution.
     Raises:
-    - PyppeteerTimeoutError: If there's a timeout while interacting with Pyppeteer.
+    - PyppeteerTimeoutError: If a timeout occurs during web scraping.
     - pyppeteer.errors.NetworkError: If a network error occurs.
-    - Exception: For any other unexpected errors.
-
+    - Exception: For other unexpected errors.
     """
     output.delete("1.0", tk.END)
     print_the_output_statement(output, "Data Processing Started...")
     print_the_output_statement(output, "Please wait for the Report generation.")
-    
-    error_response = ''
+
+    error_response = []
+    Response = ""
     download_path = get_default_download_path()
-    print('download_path' , download_path)
-    
+    print("download_path", download_path)
+
     # Define the path for downloading the CSV file
     source_file = f"{download_path}/CA-ABC-LicenseReport.csv"
-    print('source_file', source_file)
-    
+    print("source_file", source_file)
+
     # Create a new page in the browser context
     page = await browser.newPage()
-    
+
     # Delete the existing CSV file if it exists
-    delete_file(source_file) if os.path.exists(source_file) else ''
-    
+    delete_file(source_file) if os.path.exists(source_file) else ""
+
     # Ensure the download directory exists
     os.makedirs(download_path, exist_ok=True)
-    
+
     # Configure browser to allow downloads to specified path
-    await page._client.send('Page.setDownloadBehavior',
-                            {'behavior': 'allow', 'downloadPath': download_path})
-    
+    await page._client.send(
+        "Page.setDownloadBehavior", {"behavior": "allow", "downloadPath": download_path}
+    )
+
     # Set viewport dimensions for the page
-    await page.setViewport({'width': width, 'height': height})
-    
+    await page.setViewport({"width": width, "height": height})
+
     try:
         # Convert start_date and end_date strings to datetime objects
         start_date = datetime.strptime(start_date, "%B %d, %Y")
         end_date = datetime.strptime(end_date, "%B %d, %Y")
-        
+
         # Iterate through each date in the specified range
         while start_date <= end_date:
             formatted_date = start_date.strftime("%m/%d/%Y")
-            print(f'Scrapping the data {formatted_date}')
-            
+            print(f"Scrapping the data {formatted_date}")
+
             # Load the page for the current formatted date
             load_page = await page_load(page, formatted_date, PAGE_URL)
-            
+
             if load_page:
                 print(f"Page loaded successfully")
-                
+
                 # Wait for page elements to settle
                 await asyncio.sleep(5)
-                
+
                 # Determine viewport height for scrolling
                 viewport_height = await page.evaluate("window.innerHeight")
                 print("Viewport height obtained")
-                
+
                 # Scroll down to load additional content
                 scroll_distance = int(viewport_height * 0.3)
                 await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
-                print('Short scrolling...')
-                
+                print("Short scrolling...")
+
                 # Check if specific element indicating no data is present
                 check_script = """
                     () => {
@@ -137,61 +133,69 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         return false;
                     }
                 """
-                
                 element_exists = await page.evaluate(check_script)
-                
                 if element_exists:
-                    # Handle case where no data is found for the date
+                    # Handle a case where no data is found for the date
                     print_the_output_statement(
                         output,
                         f"There were no new applications taken on the selected report date. {start_date}:",
                     )
-                    error_response = True
                 else:
                     # Check if the table element exists on the page
                     table_exists = await page.evaluate(
-                        'document.querySelector("table#license_report tbody tr") !== null')
-                    
+                        'document.querySelector("table#license_report tbody tr") !== null'
+                    )
+
                     if table_exists:
                         # Perform long scrolling to load more data
                         scroll_distance = int(viewport_height * 3.9)
                         await page.evaluate(f"window.scrollBy(0, {scroll_distance})")
                         print("Long scrolling...")
-                        
+
                         # Wait for the CSV download button to appear
-                        await page.waitForXPath('//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
+                        await page.waitForXPath(
+                            '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]'
+                        )
                         download_csv_btn = await page.xpath(
-                            '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]')
-                        
-                        print(f'Download button found: {download_csv_btn}')
-                        
+                            '//*[@class="btn btn-default buttons-csv buttons-html5 abclqs-download-btn et_pb_button et_pb_button_0 et_pb_bg_layout_dark"]'
+                        )
+
+                        print(f"Download button found: {download_csv_btn}")
+
                         # Click on the download button to download CSV
                         await download_csv_btn[0].click()
                         print("Clicked on download button successfully!")
-                        print('Downloading...')
-                        
+                        print("Downloading...")
+
                         # Wait briefly for the file to download
                         await asyncio.sleep(7)
-                        print(f'File downloaded to {source_file}')
-                        
+                        print(f"File downloaded to {source_file}")
+                        error_response = Read_Csv(source_file)
                         # Convert downloaded CSV to JSON and add report date
-                        success, Response = convert_csv_to_json_and_add_report_date(source_file, FILE_NAME, FILE_TEMP_FOLDER, start_date)
-                        
+                        success, Response = convert_csv_to_json_and_add_report_date(
+                            source_file, FILE_NAME, FILE_TEMP_FOLDER, start_date
+                        )
                         if success:
-                            delete_file(source_file) if os.path.exists(source_file) else ''
-                        
-                        print_the_output_statement(output, f"Data found for {formatted_date}.")
-                    
+                            (
+                                delete_file(source_file)
+                                if os.path.exists(source_file)
+                                else ""
+                            )
+
+                        print_the_output_statement(
+                            output, f"Data found for {formatted_date}."
+                        )
+
                     else:
-                        # Handle case where table does not exist for the date
+                        # Handle cases where table does not exist for the date
                         error_response = True
                         print_the_output_statement(
                             output,
                             f"There were no new applications taken on the selected report date. {start_date}:",
                         )
-                    
+
             start_date += timedelta(days=1)
-    
+
     except PyppeteerTimeoutError as timeout_error:
         # Handle Pyppeteer timeout error
         CTkMessagebox(
@@ -199,7 +203,7 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
             message="Internal Error Occurred while running application. Please Try Again!!",
             icon="cancel",
         )
-    
+
     except pyppeteer.errors.NetworkError:
         # Handle Pyppeteer network error
         CTkMessagebox(
@@ -207,7 +211,7 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
             message="Internal Error Occurred while running application. Please Try Again!!",
             icon="cancel",
         )
-    
+
     except Exception as e:
         # Handle any other unexpected exceptions
         CTkMessagebox(
@@ -215,63 +219,58 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
             message="Internal Error Occurred while running application. Please Try Again!!",
             icon="cancel",
         )
-    
+
     finally:
         # Close the browser session
         await browser.close()
-        
+
         # Calculate total execution time
         end_time = time.time()
         total_time = end_time - start_time
-        
-        # Display appropriate message based on error_response status
-        if error_response:
+
+        # Display the appropriate message based on error_response status
+        if len(error_response) == 0:
             CTkMessagebox(
                 title="Error",
                 message=f"No Report is found on the dated {start_date} & {end_date}",
                 icon="cancel",
             )
-        
+
         else:
             # Prompt user to download the generated report
             msg = CTkMessagebox(
                 title="Info",
                 message="Report Successfully Generated.\n Click OK to Download",
                 option_1="Cancel",
-                option_2="Ok"
+                option_2="Ok",
             )
-            
+
             if msg.get() == "Ok":
                 # Construct file name based on start and end dates
                 start_date_str = start_date_entry.get_date().strftime("%Y-%B-%d")
                 end_date_str = end_date_entry.get_date().strftime("%Y-%B-%d")
                 FileName = f"{FILE_NAME}_{start_date_str}_{end_date_str}"
-                
+
                 # Prompt user to select a folder for saving the data
                 save_folder = filedialog.askdirectory(
-                    initialdir=os.getcwd(),
-                    title="Select Folder to Save Data"
+                    initialdir=os.getcwd(), title="Select Folder to Save Data"
                 )
-                
+
                 if save_folder:
-                    # Retrieve list of file paths in the response directory
+                    # Retrieve a list of file paths in the response directory
                     file_paths = list_files_in_directory(Response)
-                    
                     # Merge the files into a single CSV file
-                    merge_the_file = merge_csv_files(file_paths, save_folder, FileName, FILE_TYPE)
-                    print('merge_the_file', merge_the_file)
-                    
-                    # Delete the response directory
-                    directory_to_delete = fr'{Response}'
-                    delete_directory(directory_to_delete)
-                    
-                    # Display success message with file location
+                    merge_the_file = merge_csv_files(
+                        file_paths, save_folder, FileName, FILE_TYPE, Response
+                    )
+                    print("merge_the_file", merge_the_file)
+                    # Display a success message with file location
                     CTkMessagebox(
                         message=f"Generated Report Successfully on the dated {start_date} & {end_date} and saved the file to  {merge_the_file} ",
                         icon="check",
                         option_1="Thanks",
                     )
-                
+
                 else:
                     # Display message if user cancels download
                     CTkMessagebox(
@@ -279,12 +278,16 @@ async def scrape_and_save_table_data(browser, start_date, end_date, output, star
                         icon="check",
                         option_1="Thanks",
                     )
-           
+
         # Display total execution time in the output window
-        print_the_output_statement(output, f"Total execution time: {total_time:.2f} seconds")
+        print_the_output_statement(
+            output, f"Total execution time: {total_time:.2f} seconds"
+        )
 
 
-def run_scraping_thread(loop, browser, start_date_str, end_date_str, output_text, start_time):
+def run_scraping_thread(
+    loop, browser, start_date_str, end_date_str, output_text, start_time
+):
     """
     Runs the scraping thread, setting the event loop and invoking the scraping coroutine.
 
@@ -304,7 +307,7 @@ def run_scraping_thread(loop, browser, start_date_str, end_date_str, output_text
 
     # Run the scraping coroutine until complete
     loop.run_until_complete(
-        scrape_and_save_table_data(
+        Generate_the_Report_and_Download(
             browser, start_date_str, end_date_str, output_text, start_time
         )
     )
@@ -364,11 +367,11 @@ def generate_daily_report():
         # Initialize a new event loop
         loop = asyncio.new_event_loop()
         print("browser init")
-        
+
         # Initialize the browser
         browser = pyppeteerBrowserInit(loop, HEADLESS, width, height)
         print("browser init completed")
-        
+
         # Start a new thread for scraping
         scrape_thread = Thread(
             target=run_scraping_thread,
@@ -392,13 +395,16 @@ def close_window():
     """
     root.destroy()  # Destroy the root window to close the application
 
+
 # Initialize the main application window
 root = tk.Tk()
 root.title(APP_TITLE)
 root.option_add("*Font", "Handfine")
 
 # Create and pack the heading label
-heading_label = tk.Label(root, text=APP_HEADING, font=("Handfine", 18, "bold italic"), pady=20)
+heading_label = tk.Label(
+    root, text=APP_HEADING, font=("Handfine", 18, "bold italic"), pady=20
+)
 heading_label.pack()
 
 # Configure the style for the form frame

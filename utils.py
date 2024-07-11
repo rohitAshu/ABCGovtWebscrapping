@@ -1,10 +1,10 @@
-
 import csv
 import json
 import os
 import platform
 import shutil
 import tkinter as tk
+
 
 def print_the_output_statement(output, message):
     """
@@ -18,7 +18,7 @@ def print_the_output_statement(output, message):
     output.insert(tk.END, f"{message} \n", "bold")
     # Update the widget to reflect the changes immediately
     output.update_idletasks()
-    
+
     # Print the message to the console
     print(message)
 
@@ -57,18 +57,19 @@ def find_chrome_executable():
         for path in chrome_paths:
             if os.path.exists(path):
                 return path
-    
+
     # Handle Linux systems
     elif system == "Linux":
         # Try to find Chrome using `shutil.which`
         chrome_path = shutil.which("google-chrome")
         if chrome_path is None:
-            # Fallback to stable version if the default one isn't found
+            # Fallback to a stable version if the default one isn't found
             chrome_path = shutil.which("google-chrome-stable")
         return chrome_path
-    
+
     # Return None if Chrome is not found
     return None
+
 
 async def page_load(page, date, pageurl):
     """
@@ -86,7 +87,7 @@ async def page_load(page, date, pageurl):
     print(f"Opening page from URL: {pageurl}")
     # Navigate to the page and wait for DOM content to be loaded
     response = await page.goto(pageurl, waitUntil="domcontentloaded")
-    
+
     # Check response status
     if response.status == 404:
         print(f"Page not found: {pageurl}")
@@ -96,6 +97,7 @@ async def page_load(page, date, pageurl):
         return False
     else:
         return True
+
 
 def get_default_download_path():
     """
@@ -108,16 +110,17 @@ def get_default_download_path():
     - NotImplementedError: If the current platform is not recognized (not Linux, Windows, or macOS).
     """
     system = platform.system()
-    
-    if system == 'Linux':
-        return os.path.join(os.path.expanduser('~'), 'Downloads')
-    elif system == 'Windows':
-        return os.path.join(os.environ['USERPROFILE'], 'Downloads')
-    elif system == 'Darwin':
-        return os.path.join(os.path.expanduser('~'), 'Downloads')
+
+    if system == "Linux":
+        return os.path.join(os.path.expanduser("~"), "Downloads")
+    elif system == "Windows":
+        return os.path.join(os.environ["USERPROFILE"], "Downloads")
+    elif system == "Darwin":
+        return os.path.join(os.path.expanduser("~"), "Downloads")
     else:
         raise NotImplementedError(f"Unsupported platform: {system}")
-    
+
+
 def delete_file(file_path):
     """
     Deletes a file if it exists at the specified path.
@@ -136,9 +139,9 @@ def delete_file(file_path):
             print(f"File does not exist: {file_path}")
     except Exception as e:
         print(f"Error deleting file: {e}")
-      
 
-def csv_to_json(csv_file, currendate , json_file):
+
+def csv_to_json(csv_file, currendate, json_file):
     """
     Convert CSV data to JSON format.
 
@@ -149,14 +152,14 @@ def csv_to_json(csv_file, currendate , json_file):
     - str: JSON formatted string.
     """
     json_data = []
-    with open(csv_file, 'r') as csvfile:
+    with open(csv_file, "r") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            row['Report Date'] = currendate.strftime("%B %d, %Y")
+            row["Report Date"] = currendate.strftime("%B %d, %Y")
             json_data.append(row)
-    with open(json_file, 'w') as f:
+    with open(json_file, "w") as f:
         json.dump(json_data, f, indent=4)
-        
+
     return json.dumps(json_data, indent=4)
 
 
@@ -274,7 +277,11 @@ def merge_json(json_data1, json_data2):
 
     merged_json = json.dumps(merged_data, indent=4)
     return merged_json
-def convert_csv_to_json_and_add_report_date(meincsvfile, filenmae, tempfolder,currendate):
+
+
+def convert_csv_to_json_and_add_report_date(
+    meincsvfile, filename, tempfolder, currendate
+):
     """
     Convert a CSV file to JSON format, add a 'Report Date' field, and save both CSV and JSON files.
 
@@ -297,43 +304,40 @@ def convert_csv_to_json_and_add_report_date(meincsvfile, filenmae, tempfolder,cu
         if not os.path.exists(meincsvfile):
             print(f"Error: File '{meincsvfile}' not found.")
             return False
-        print('meincsvfile', meincsvfile)
-        download_date = currendate.strftime('%d_%m_%Y')
-        new_filename = f"{tempfolder}/{filenmae}_generate_report_{download_date}.csv"
-        print('new_filename', new_filename)
-        tempjson = f"{tempfolder}/{filenmae}_generate_report_{download_date}.json"
-        print('tempjson', tempjson)
+        print("meincsvfile", meincsvfile)
+        download_date = currendate.strftime("%d_%m_%Y")
+        new_filename = f"{tempfolder}/{filename}_generate_report_{download_date}.csv"
+        print("new_filename", new_filename)
+        tempjson = f"{tempfolder}/{filename}_generate_report_{download_date}.json"
+        print("tempjson", tempjson)
         current_directory = os.getcwd()
-        print('current_directory', current_directory)
+        print("current_directory", current_directory)
         # Determine the destination path
         destination_file = os.path.join(current_directory, new_filename)
-        print('destination_file', destination_file)
+        print("destination_file", destination_file)
         report_directory = os.path.dirname(destination_file)
-        print('report_directory', report_directory)
+        print("report_directory", report_directory)
         if not os.path.exists(report_directory):
             os.makedirs(report_directory)
             print(f"Created directory: {report_directory}")
-        json_data= csv_to_json(meincsvfile,currendate, tempjson)
-        # json_data2 = generate_json_data(json_data)
-        # mergejson = merge_json(json1, json_data2)
-        # print('mergejson', mergejson)
-        with open(tempjson, 'r') as f:
+        json_data = csv_to_json(meincsvfile, currendate, tempjson)
+        json_data2 = generate_json_data(json_data)
+        mergejson = merge_json(json_data, json_data2)
+        with open(tempjson, "r") as f:
             data = json.load(f)
         if data:
-        # Extract headers from the first dictionary
+            # Extract headers from the first dictionary
             headers = data[0].keys()
             # Write CSV file
-            with open(new_filename, 'w', newline='') as csvfile:
+            with open(new_filename, "w", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=headers)
                 writer.writeheader()
                 writer.writerows(data)
-        # os.remove(tempjson)
-        delete_file(tempjson) if os.path.exists(tempjson) else ''
+        delete_file(tempjson) if os.path.exists(tempjson) else ""
         return True, report_directory
     except PermissionError:
         print(f"Error: Permission denied moving '{meincsvfile}'.")
 
-        
 
 def list_files_in_directory(directory_path):
     """
@@ -365,36 +369,34 @@ def list_files_in_directory(directory_path):
     except PermissionError:
         print(f"Permission denied accessing '{directory_path}'.")
         return []
-    
-def merge_csv_files(file_paths, save_folder, file_name, file_type):
+
+
+def merge_csv_files(file_paths, save_folder, file_name, file_type, main_folder):
     """
-    Merge multiple CSV files into one CSV file.
+    merge multiple CSV files into one CSV file, sorted by 'Report Date' in ascending order.
 
     Parameters:
     - file_paths (list): List of paths to CSV files to merge.
     - save_folder (str): Folder path where the merged CSV file will be saved.
     - file_name (str): Name of the merged CSV file.
     - file_type (str): File extension ('csv', 'xlsx', etc.).
-
-    Returns:
+    - main_folder (str): Main folder where intermediate files might be stored.
+    returns:
     - str: Path to the merged CSV file.
-
-    Raises:
+    raises:
     - FileNotFoundError: If one of the input CSV files is not found.
     - PermissionError: If permission is denied accessing or writing to output files.
     """
     os.makedirs(save_folder, exist_ok=True)
     output_file = os.path.join(save_folder, f"{file_name}.{file_type}")
-    
     combined_data = []
     header_written = False
-
     try:
         for file_path in file_paths:
             if not os.path.isfile(file_path):
                 raise FileNotFoundError(f"File not found: '{file_path}'")
 
-            with open(file_path, 'r', newline='', encoding='utf-8-sig') as infile:
+            with open(file_path, "r", newline="", encoding="utf-8-sig") as infile:
                 reader = csv.reader(infile)
                 headers = next(reader)  # Read headers from the first file
                 if not header_written:
@@ -403,7 +405,17 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
                 for row in reader:
                     combined_data.append(row)  # Append rows from each file
 
-        with open(output_file, 'w', newline='', encoding='utf-8') as outfile:
+        # Find the index of 'Report Date' column
+        report_date_index = headers.index("Report Date")
+
+        # Sort combined_data by 'Report Date' column (skip sorting headers)
+        combined_data.sort(
+            key=lambda x: (
+                x[report_date_index] if x[report_date_index].isdigit() else float("inf")
+            )
+        )
+
+        with open(output_file, "w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile)
             writer.writerows(combined_data)
 
@@ -415,10 +427,9 @@ def merge_csv_files(file_paths, save_folder, file_name, file_type):
         print(f"Error: Permission denied accessing or writing to output files.")
         print(e)
 
+    # Assuming delete_directory is a function that deletes the main_folder
+    delete_directory(rf"{main_folder}")
     return output_file
-
-
-
 
 
 def delete_directory(directory_path):
@@ -442,4 +453,29 @@ def delete_directory(directory_path):
         shutil.rmtree(directory_path)  # Recursively delete the directory
         print(f"Deleted directory and contents: {directory_path}")
     except OSError as e:
-        print(f"Error: {directory_path} - {e.strerror}")  # Print error message if deletion fails
+        print(
+            f"Error: {directory_path} - {e.strerror}"
+        )  # Print error message if deletion fails
+
+
+def Read_Csv(file_path):
+    """
+    Read data from a CSV file and return it as a list of lists.
+
+    Parameters:
+    - file_path (str): Path to the CSV file to be read.
+
+    Returns:
+    - list: A list containing each row of the CSV file as a list of strings.
+            Each inner list represents a row of data from the CSV file.
+
+    Raises:
+    - FileNotFoundError: If the specified file_path does not exist.
+    - IOError: If an error occurs while reading the file.
+    """
+    csv_data = []
+    with open(file_path, "r", newline="") as csvfile:
+        csvreader = csv.reader(csvfile, delimiter=";")
+        for row in csvreader:
+            csv_data.append(row)
+    return csv_data
