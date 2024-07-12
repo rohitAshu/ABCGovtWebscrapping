@@ -162,3 +162,5 @@ cython_debug/
 .idea/
 .vscode
 temp/
+
+pip_install_log.txt
