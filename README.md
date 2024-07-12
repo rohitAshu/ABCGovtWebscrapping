@@ -43,7 +43,7 @@ pip install babel
 
 # Generates the exe file
 ```bash
-pyinstaller --onefile --hidden-import=babel.numbers --hidden-import=babel.localtime --icon=ReportIcon.ico  --windowed license_report_gen.py   
+pyinstaller --onefile --hidden-import=babel.numbers --hidden-import=screeninfo --hidden-import=babel.localtime --icon=ReportIcon.ico  --windowed license_report_gen.py   
 ```
 
 # Build the executable using the spec file
